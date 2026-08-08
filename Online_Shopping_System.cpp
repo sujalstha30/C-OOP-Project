@@ -7,9 +7,9 @@
 
 using namespace std;
 
-// ============================================================
+
 //  INPUT UTILITIES
-// ============================================================
+
 void clearInput() {
     cin.clear();
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -56,12 +56,10 @@ string getDate() {
            to_string(ltm->tm_mday);
 }
 
-// ============================================================
 //  ABSTRACTION
 //  Abstract Base Classes (Interfaces)
-// ============================================================
 
-// -- Abstract: anything that can be displayed -----------------
+//  Abstract: anything that can be displayed 
 class IDisplayable {
 public:
     virtual void display()       const = 0;
@@ -69,7 +67,7 @@ public:
     virtual ~IDisplayable() {}
 };
 
-// -- Abstract: anything that can be managed (CRUD) ------------
+// Abstract: anything that can be managed (CRUD)
 class IManageable {
 public:
     virtual void add()    = 0;
@@ -78,7 +76,7 @@ public:
     virtual ~IManageable() {}
 };
 
-// -- Abstract: Base Entity (every object has an ID and name) --
+// Abstract: Base Entity (every object has an ID and name) 
 class Entity {
 protected:
     int    id;
@@ -93,37 +91,36 @@ public:
     virtual ~Entity() {}
 };
 
-// ============================================================
 //  ENCAPSULATION
 //  Product Class (private data, public methods)
-// ============================================================
+
 class Product : public Entity, public IDisplayable {
 private:
-    // -- Private: hidden from outside -------------------------
+    // Private: hidden from outside 
     string category;
     double price;
     int    stock;
     string description;
 
 public:
-    // -- Constructor ------------------------------------------
+    //  Constructor 
     Product(int i, string n, string c,
             double p, int s, string d)
         : Entity(i, n),
           category(c), price(p), stock(s), description(d) {}
 
-    // -- Getters (Controlled Access) --------------------------
+    // Getters (Controlled Access) 
     string getCategory()    const { return category;    }
     double getPrice()       const { return price;       }
     int    getStock()       const { return stock;       }
     string getDescription() const { return description; }
 
-    // -- Setters (Controlled Modification) --------------------
+    // Setters (Controlled Modification)
     void setPrice(double p)    { price    = p; }
     void setStock(int s)       { stock    = s; }
     void setCategory(string c) { category = c; }
 
-    // -- Stock Logic ------------------------------------------
+    // Stock Logic 
     bool reduceStock(int qty) {
         if (qty <= 0 || qty > stock) return false;
         stock -= qty;
@@ -136,7 +133,7 @@ public:
 
     bool isAvailable() const { return stock > 0; }
 
-    // -- IDisplayable Implementation --------------------------
+    //  IDisplayable Implementation 
     void display() const {
         cout << "  | " << left
              << setw(6)  << id
@@ -150,23 +147,23 @@ public:
 
     void displayDetail() const {
         cout << endl;
-        cout << "  +------------------------------------------+" << endl;
-        cout << "  |          PRODUCT DETAILS                 |" << endl;
-        cout << "  +------------------------------------------+" << endl;
-        cout << "  | ID          : " << id          << endl;
-        cout << "  | Name        : " << name        << endl;
-        cout << "  | Category    : " << category    << endl;
-        cout << "  | Price       : Rs. " << fixed
+        cout << "                                             " << endl;
+        cout << "             PRODUCT DETAILS                 " << endl;
+        cout << "                                             " << endl;
+        cout << "   ID          : " << id          << endl;
+        cout << "   Name        : " << name        << endl;
+        cout << "   Category    : " << category    << endl;
+        cout << "   Price       : Rs. " << fixed
              << setprecision(2)   << price          << endl;
-        cout << "  | Stock       : " << stock       << endl;
-        cout << "  | Description : " << description << endl;
-        cout << "  +------------------------------------------+" << endl;
+        cout << "   Stock       : " << stock       << endl;
+        cout << "   Description : " << description << endl;
+        cout << "                                             " << endl;
     }
 };
 
-// ============================================================
+
 //  CartItem and Order Structures
-// ============================================================
+
 struct CartItem {
     int    productID;
     string productName;
@@ -208,7 +205,7 @@ struct Order {
 
     void display() const {
         cout << endl;
-        cout << "  ===== ORDER #" << orderID << " =====" << endl;
+        cout << "  ORDER #" << orderID << "     " << endl;
         cout << "  Customer : " << customerName << endl;
         cout << "  Date     : " << date         << endl;
         cout << "  Address  : " << address      << endl;
@@ -222,10 +219,10 @@ struct Order {
              << setw(12) << "Price"
              << setw(6)  << "Qty"
              << "Subtotal" << endl;
-        cout << "  -----------------------------------------------" << endl;
+        cout << "                                                 " << endl;
         for (int i = 0; i < (int)items.size(); i++)
             items[i].display();
-        cout << "  -----------------------------------------------" << endl;
+        cout << "                                                 " << endl;
         cout << "  Subtotal  : Rs. " << fixed << setprecision(2) << subtotal  << endl;
         cout << "  VAT (13%) : Rs. " << fixed << setprecision(2) << vat       << endl;
         cout << "  Shipping  : Rs. " << fixed << setprecision(2) << shipping  << endl;
@@ -233,10 +230,10 @@ struct Order {
     }
 };
 
-// ============================================================
+
 //  ABSTRACTION
 //  Abstract Payment Class
-// ============================================================
+
 class Payment {
 protected:
     double amount;
@@ -245,7 +242,7 @@ protected:
 public:
     Payment(double amt) : amount(amt), status("Pending") {}
 
-    // -- Pure Virtual: subclasses MUST implement --------------
+    // Pure Virtual: subclasses MUST implement 
     virtual bool   processPayment() = 0;
     virtual string getMethodName()  const = 0;
     virtual void   displayReceipt() const = 0;
@@ -255,12 +252,10 @@ public:
     virtual ~Payment() {}
 };
 
-// ============================================================
-//  INHERITANCE + POLYMORPHISM
-//  Concrete Payment Classes
-// ============================================================
 
-// -- Cash on Delivery -----------------------------------------
+//  INHERITANCE + POLYMORPHISM
+
+//  Cash on Delivery
 class CashOnDelivery : public Payment {
 public:
     CashOnDelivery(double amt) : Payment(amt) {}
@@ -282,7 +277,7 @@ public:
     }
 };
 
-// -- eSewa ----------------------------------------------------
+// eSewa
 class ESewa : public Payment {
 private:
     string mobileNumber;
@@ -311,7 +306,7 @@ public:
     }
 };
 
-// -- Khalti ---------------------------------------------------
+//  Khalti 
 class Khalti : public Payment {
 private:
     string mobileNumber;
@@ -340,7 +335,7 @@ public:
     }
 };
 
-// -- IME Pay --------------------------------------------------
+// IME Pay 
 class IMEPay : public Payment {
 private:
     string mobileNumber;
@@ -369,7 +364,7 @@ public:
     }
 };
 
-// -- ConnectIPS -----------------------------------------------
+// ConnectIPS 
 class ConnectIPS : public Payment {
 private:
     string username;
@@ -398,7 +393,7 @@ public:
     }
 };
 
-// -- Bank Transfer --------------------------------------------
+// Bank Transfer 
 class BankTransfer : public Payment {
 private:
     string bankName;
@@ -408,7 +403,7 @@ public:
     BankTransfer(double amt) : Payment(amt) {}
 
     bool processPayment() {
-        cout << "  Available Banks: NABIL, NIC Asia, Everest, " << endl;
+        cout << "  Available Banks: Nabil, NIC Asia, Everest, " << endl;
         cout << "                   Himalayan, NMB, Siddhartha"  << endl;
         bankName      = getString("  Bank Name           : ");
         accountNumber = getString("  Account Number      : ");
@@ -431,13 +426,11 @@ public:
     }
 };
 
-// ============================================================
 //  ABSTRACTION
 //  Abstract User Base Class
-// ============================================================
+
 class BaseUser : public Entity {
 protected:
-    // -- Protected: accessible by subclasses ------------------
     string email;
     string password;
     string phone;
@@ -452,22 +445,22 @@ public:
           email(e), password(pass), phone(ph),
           address(addr), province(prov) {}
 
-    // -- Pure Virtual: subclasses define their own menu -------
+    // Pure Virtual: subclasses define their own menu 
     virtual void showMenu()    = 0;
     virtual void displayInfo() const = 0;
 
-    // -- Common Methods (shared by all user types) ------------
+    //  Common Methods (shared by all user types)
     bool checkPassword(const string &p) const {
         return password == p;
     }
 
-    // -- Getters ----------------------------------------------
+    // Getters 
     string getEmail()    const { return email;    }
     string getPhone()    const { return phone;    }
     string getAddress()  const { return address;  }
     string getProvince() const { return province; }
 
-    // -- Setters ----------------------------------------------
+    // Setters 
     void setEmail(string e)    { email    = e; }
     void setPhone(string p)    { phone    = p; }
     void setAddress(string a)  { address  = a; }
@@ -476,13 +469,11 @@ public:
     virtual ~BaseUser() {}
 };
 
-// ============================================================
 //  INHERITANCE
 //  Customer Class (inherits BaseUser)
-// ============================================================
 class Customer : public BaseUser {
 private:
-    // -- Private to Customer only -----------------------------
+    // Private to Customer only 
     vector<CartItem> cart;
     vector<Order>    orders;
 
@@ -492,10 +483,10 @@ public:
              string addr, string prov)
         : BaseUser(i, uname, email, pass, phone, addr, prov) {}
 
-    // -- Polymorphic: overrides BaseUser's pure virtual -------
+    //  Polymorphic: overrides BaseUser's pure virtual 
     void showMenu() const {
         cout << endl;
-        cout << "  ===== Namaste, " << name << "! =====" << endl;
+        cout << "  Namaste, " << name << "! " << endl;
         cout << "  1. Browse Products"  << endl;
         cout << "  2. Search Product"   << endl;
         cout << "  3. View Cart"        << endl;
@@ -510,7 +501,7 @@ public:
 
     void displayInfo() const {
         cout << endl;
-        cout << "  ===== MY ACCOUNT =====" << endl;
+        cout << "  MY ACCOUNT: " << endl;
         cout << "  Username : " << name     << endl;
         cout << "  Email    : " << email    << endl;
         cout << "  Phone    : " << phone    << endl;
@@ -518,7 +509,7 @@ public:
         cout << "  Province : " << province << endl;
     }
 
-    // -- Cart Operations --------------------------------------
+    // Cart Operations 
     double cartTotal() const {
         double t = 0;
         for (int i = 0; i < (int)cart.size(); i++)
@@ -552,7 +543,7 @@ public:
     bool cartIsEmpty()    const { return cart.empty(); }
     vector<CartItem>& getCart() { return cart; }
 
-    // -- Order Operations -------------------------------------
+    //  Order Operations 
     void addOrder(Order o)      { orders.push_back(o); }
     bool hasOrders()      const { return !orders.empty(); }
 
@@ -560,7 +551,7 @@ public:
 
     void displayOrders() const {
         cout << endl;
-        cout << "  ===== ORDER HISTORY =====" << endl;
+        cout << " ORDER HISTORY: " << endl;
         if (orders.empty()) {
             cout << "  No orders yet." << endl;
             return;
@@ -576,10 +567,10 @@ public:
 
     void displayCartItems() const {
         cout << endl;
-        cout << "  ===== YOUR CART =====" << endl;
+        cout << " YOUR CART: " << endl;
 
         if (cart.empty()) {
-            cout << "  Cart is empty. Gaadi khali cha!" << endl;
+            cout << "  Cart is empty." << endl;
             return;
         }
 
@@ -589,21 +580,20 @@ public:
              << setw(12) << "Price"
              << setw(6)  << "Qty"
              << "Subtotal" << endl;
-        cout << "  -----------------------------------------------" << endl;
+        cout << "                                                 " << endl;
 
         for (int i = 0; i < (int)cart.size(); i++)
             cart[i].display();
 
-        cout << "  -----------------------------------------------" << endl;
+        cout << "                                                 " << endl;
         cout << "  TOTAL: Rs. "
              << fixed << setprecision(2) << cartTotal() << endl;
     }
 };
 
-// ============================================================
+
 //  INHERITANCE
 //  Admin Class (inherits BaseUser)
-// ============================================================
 class Admin : public BaseUser {
 private:
     string adminCode;
@@ -616,10 +606,10 @@ public:
                    phone, addr, prov),
           adminCode(code) {}
 
-    // -- Polymorphic: overrides BaseUser's pure virtual -------
+    // Polymorphic: overrides BaseUser's pure virtual 
     void showMenu() {
         cout << endl;
-        cout << "  ===== ADMIN PANEL =====" << endl;
+        cout << "  ADMIN PANEL: " << endl;
         cout << "  1. View All Products"    << endl;
         cout << "  2. Add Product"          << endl;
         cout << "  3. Update Product Price" << endl;
@@ -631,7 +621,7 @@ public:
 
     void displayInfo() const {
         cout << endl;
-        cout << "  ===== ADMIN INFO =====" << endl;
+        cout << "  ADMIN INFO: " << endl;
         cout << "  Username : " << name     << endl;
         cout << "  Email    : " << email    << endl;
         cout << "  Phone    : " << phone    << endl;
@@ -642,13 +632,12 @@ public:
     }
 };
 
-// ============================================================
+
 //  ABSTRACTION
 //  Abstract Shipping Class
-// ============================================================
 class ShippingStrategy {
 public:
-    // -- Pure Virtual -----------------------------------------
+    // Pure Virtual
     virtual double   calculateFee(const string &province) const = 0;
     virtual string   getCarrierName()                     const = 0;
     virtual int      getEstimatedDays(const string &prov) const = 0;
@@ -656,12 +645,8 @@ public:
     virtual ~ShippingStrategy() {}
 };
 
-// ============================================================
 //  INHERITANCE + POLYMORPHISM
-//  Concrete Shipping Classes
-// ============================================================
 
-// -- Standard Shipping ----------------------------------------
 class StandardShipping : public ShippingStrategy {
 public:
     double calculateFee(const string &province) const {
@@ -683,7 +668,7 @@ public:
     }
 };
 
-// -- Express Shipping -----------------------------------------
+// Express Shipping 
 class ExpressShipping : public ShippingStrategy {
 public:
     double calculateFee(const string &province) const {
@@ -705,9 +690,7 @@ public:
     }
 };
 
-// ============================================================
 //  MAIN SHOP SYSTEM CLASS
-// ============================================================
 class ShopSystem {
 private:
     string           shopName;
@@ -730,7 +713,6 @@ private:
         "Sudurpashchim Pradesh"
     };
 
-    // ── Private Helpers ──────────────────────────────────────
     Product* findProduct(int id) {
         for (int i = 0; i < (int)products.size(); i++)
             if (products[i].getID() == id)
@@ -756,7 +738,7 @@ private:
     }
 
     void printTableHeader() {
-        cout << "  +------------------------------------------------------------------+" << endl;
+        cout << "                                                                   " << endl;
         cout << "  | " << left
              << setw(6)  << "ID"
              << setw(22) << "Name"
@@ -764,14 +746,14 @@ private:
              << setw(14) << "Price"
              << setw(5)  << "Stock"
              << " |" << endl;
-        cout << "  +------------------------------------------------------------------+" << endl;
+        cout << "                                                                    " << endl;
     }
 
     void printTableFooter() {
-        cout << "  +------------------------------------------------------------------+" << endl;
+        cout << "                                                                    " << endl;
     }
 
-    // -- POLYMORPHISM: payment factory ------------------------
+    // POLYMORPHISM: payment factory 
     Payment* createPayment(int choice, double amount) {
         switch (choice) {
             case 1: return new CashOnDelivery(amount);
@@ -784,7 +766,7 @@ private:
         }
     }
 
-    // -- POLYMORPHISM: shipping factory -----------------------
+    // POLYMORPHISM: shipping factory 
     ShippingStrategy* createShipping(int choice) {
         switch (choice) {
             case 1: return new StandardShipping();
@@ -864,7 +846,7 @@ private:
     }
 
 public:
-    // ── Constructor ──────────────────────────────────────────
+    // Constructor 
     ShopSystem(string name)
         : shopName(name),
           nextProductID(1001),
@@ -874,18 +856,17 @@ public:
           adminLoggedIn(false),
           admin(1, "admin", "admin@sastobazar.com.np",
                 "admin123", "9800000000",
-                "Kathmandu", "Bagmati Pradesh", "ADMIN2024") {
+                "Kathmandu", "Bagmati Pradesh", "ADMIN2007") {
         loadProducts();
     }
 
-    // ============================================================
     //  CUSTOMER FUNCTIONS
-    // ============================================================
+    
 
-    // ── Register ─────────────────────────────────────────────
+    //  Register
     void registerCustomer() {
         cout << endl;
-        cout << "  ===== REGISTER =====" << endl;
+        cout << " REGISTER: " << endl;
 
         string uname = getString("  Username : ");
         if (findCustomer(uname) != -1) {
@@ -912,10 +893,10 @@ public:
         cout << "\n  [SUCCESS] Account created! Swagat cha!" << endl;
     }
 
-    // ── Customer Login ───────────────────────────────────────
+    // Customer Login
     void loginCustomer() {
         cout << endl;
-        cout << "  ===== LOGIN =====" << endl;
+        cout << "  LOGIN: " << endl;
 
         string uname = getString("  Username : ");
         string pass  = getString("  Password : ");
@@ -930,10 +911,10 @@ public:
         cout << "  [SUCCESS] Namaste, " << uname << "!" << endl;
     }
 
-    // ── Admin Login ──────────────────────────────────────────
+    //  Admin Login 
     void loginAdmin() {
         cout << endl;
-        cout << "  ===== ADMIN LOGIN =====" << endl;
+        cout << " ADMIN LOGIN: " << endl;
 
         string uname = getString("  Username  : ");
         string pass  = getString("  Password  : ");
@@ -949,7 +930,7 @@ public:
         }
     }
 
-    // ── Browse Products ──────────────────────────────────────
+    // Browse Products
     void browseProducts() {
         cout << endl;
         cout << "  1. All Products"    << endl;
@@ -1006,7 +987,7 @@ public:
         }
     }
 
-    // ── Search ───────────────────────────────────────────────
+    //  Search
     void searchProducts() {
         string kw = getString("\n  Search: ");
         bool found = false;
@@ -1024,7 +1005,7 @@ public:
         if (!found) cout << "  [!] Kei vetiyena. Nothing found." << endl;
     }
 
-    // ── Add to Cart ──────────────────────────────────────────
+    //  Add to Cart
     void addToCart() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1052,7 +1033,7 @@ public:
         c.addToCart(p->getID(), p->getName(), p->getPrice(), qty);
     }
 
-    // ── View Cart ────────────────────────────────────────────
+    //  View Cart 
     void viewCart() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1078,7 +1059,7 @@ public:
         }
     }
 
-    // ── Checkout (uses Payment + Shipping polymorphism) ──────
+    // Checkout (uses Payment + Shipping polymorphism) 
     void checkout() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1105,7 +1086,7 @@ public:
             province = selectProvince();
         }
 
-        // -- POLYMORPHISM: Choose Shipping --------------------
+        //  POLYMORPHISM: Choose Shipping 
         cout << endl;
         cout << "  Shipping Method:" << endl;
         cout << "  1. Standard (Nepal Post)" << endl;
@@ -1122,7 +1103,7 @@ public:
              << setprecision(2) << shippingFee  << endl;
         cout << "  Est. Days: " << estDays     << " days" << endl;
 
-        // -- POLYMORPHISM: Choose Payment ---------------------
+        //  POLYMORPHISM: Choose Payment
         cout << endl;
         cout << "  Payment Method:"    << endl;
         cout << "  1. Cash on Delivery"<< endl;
@@ -1137,9 +1118,9 @@ public:
         double vat      = subtotal * 0.13;
         double total    = subtotal + vat + shippingFee;
 
-        // -- Summary ------------------------------------------
+        // Summary
         cout << endl;
-        cout << "  ===== ORDER SUMMARY =====" << endl;
+        cout << "  ORDER SUMMARY: " << endl;
         cout << "  Subtotal  : Rs. " << fixed << setprecision(2) << subtotal    << endl;
         cout << "  VAT (13%) : Rs. " << fixed << setprecision(2) << vat         << endl;
         cout << "  Shipping  : Rs. " << fixed << setprecision(2) << shippingFee << endl;
@@ -1155,7 +1136,7 @@ public:
             return;
         }
 
-        // -- Process Payment (POLYMORPHISM) -------------------
+        // Process Payment (POLYMORPHISM)
         Payment *payment = createPayment(pc, total);
         if (!payment->processPayment()) {
             cout << "  [!] Payment failed." << endl;
@@ -1164,17 +1145,17 @@ public:
             return;
         }
 
-        // -- Display Receipt (POLYMORPHISM) -------------------
+        //  Display Receipt (POLYMORPHISM) 
         payment->displayReceipt();
 
-        // -- Reduce Stock -------------------------------------
+        //  Reduce Stock 
         vector<CartItem> &cart = c.getCart();
         for (int i = 0; i < (int)cart.size(); i++) {
             Product *p = findProduct(cart[i].productID);
             if (p) p->reduceStock(cart[i].quantity);
         }
 
-        // -- Create Order -------------------------------------
+        //  Create Order 
         Order order;
         order.orderID      = nextOrderID++;
         order.customerName = c.getName();
@@ -1204,7 +1185,7 @@ public:
         delete shipping;
     }
 
-    // ── Order History ────────────────────────────────────────
+    // Order History 
     void viewOrderHistory() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1229,7 +1210,7 @@ public:
         }
     }
 
-    // ── Track Order ──────────────────────────────────────────
+    // Track Order 
     void trackOrder() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1263,7 +1244,7 @@ public:
         cout << "  [!] Order not found." << endl;
     }
 
-    // ── My Account ───────────────────────────────────────────
+    //  My Account 
     void myAccount() {
         if (loggedInCustomer == -1) return;
         Customer &c = customers[loggedInCustomer];
@@ -1294,9 +1275,9 @@ public:
         }
     }
 
-    // ============================================================
+    
     //  ADMIN FUNCTIONS
-    // ============================================================
+    
     void adminPanel() {
         bool inAdmin = true;
         while (inAdmin) {
@@ -1314,7 +1295,7 @@ public:
             } else if (c == 2) {
                 // Add product
                 cout << endl;
-                cout << "  ===== ADD PRODUCT =====" << endl;
+                cout << "  ADD PRODUCT: " << endl;
                 string n    = getString("  Name        : ");
                 string cat  = getString("  Category    : ");
                 double pr   = getDouble("  Price (Rs.) : ");
@@ -1398,14 +1379,14 @@ public:
         }
     }
 
-    // ── Main Run Loop ────────────────────────────────────────
+    // Main Run Loop 
     void run() {
         cout << endl;
-        cout << "  ============================================" << endl;
+        cout << "                                              " << endl;
         cout << "           " << shopName                       << endl;
         cout << "       Nepal ko Aafno Online Pasal!"           << endl;
         cout << "     Delivering Across All 7 Provinces"        << endl;
-        cout << "  ============================================" << endl;
+        cout << "                                              " << endl;
 
         bool running = true;
         while (running) {
@@ -1416,7 +1397,7 @@ public:
             } else if (loggedInCustomer == -1) {
                 // ── GUEST MENU ───────────────────────────────
                 cout << endl;
-                cout << "  ===== MAIN MENU =====" << endl;
+                cout << "  MAIN MENU: " << endl;
                 cout << "  1. Browse Products"    << endl;
                 cout << "  2. Login"              << endl;
                 cout << "  3. Register"           << endl;
@@ -1430,7 +1411,7 @@ public:
                     case 3: registerCustomer();  break;
                     case 4: loginAdmin();        break;
                     case 5:
-                        cout << "\n  Dhanyabad! Pheri Aaunuhos!" << endl;
+                        cout << "\n  Dhanyabad! Feri Aaunuhos!" << endl;
                         running = false;
                         break;
                     default:
@@ -1438,7 +1419,7 @@ public:
                 }
 
             } else {
-                // ── CUSTOMER MENU ────────────────────────────
+                // CUSTOMER MENU 
                 // POLYMORPHISM: calls Customer's showMenu()
                 customers[loggedInCustomer].showMenu();
                 int c = getInt("  Choice: ");
@@ -1463,9 +1444,8 @@ public:
     }
 };
 
-// ============================================================
+
 //  MAIN
-// ============================================================
 int main() {
     ShopSystem shop("SastoBazar Nepal");
     shop.run();
