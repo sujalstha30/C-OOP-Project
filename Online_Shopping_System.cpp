@@ -626,3 +626,741 @@ public:
         return adminCode == code;
     }
 };
+
+
+//  MAIN SHOP SYSTEM CLASS
+
+
+class ShopSystem {
+private:
+    string           shopName;
+    vector<Product>  products;
+    vector<Customer> customers;
+    Admin            admin;
+    int              nextProductID;
+    int              nextCustomerID;
+    int              nextOrderID;
+    int              loggedInCustomer;
+    bool             adminLoggedIn;
+
+    string provinces[7] = {
+        "Koshi Pradesh",
+        "Madhesh Pradesh",
+        "Bagmati Pradesh",
+        "Gandaki Pradesh",
+        "Lumbini Pradesh",
+        "Karnali Pradesh",
+        "Sudurpashchim Pradesh"
+    };
+
+    Product* findProduct(int id) {
+        for (int i = 0; i < (int)products.size(); i++)
+            if (products[i].getID() == id)
+                return &products[i];
+        return NULL;
+    }
+
+    int findCustomer(const string &uname) {
+        for (int i = 0; i < (int)customers.size(); i++)
+            if (customers[i].getName() == uname)
+                return i;
+        return -1;
+    }
+
+    string selectProvince() {
+        cout << endl;
+        cout << "  Select Province:" << endl;
+        for (int i = 0; i < 7; i++)
+            cout << "  " << i + 1 << ". " << provinces[i] << endl;
+        int c = getInt("  Choice: ");
+        if (c >= 1 && c <= 7) return provinces[c - 1];
+        return "Bagmati Pradesh";
+    }
+
+    void printTableHeader() {
+        cout << "                                                             " << endl;
+        cout << "  | " << left
+             << setw(6)  << "ID"
+             << setw(22) << "Name"
+             << setw(18) << "Category"
+             << setw(14) << "Price"
+             << setw(5)  << "Stock"
+             << " |" << endl;
+        cout << "                                                             " << endl;
+    }
+
+    void printTableFooter() {
+        cout << "                                                             " << endl;
+    }
+
+    // POLYMORPHISM: payment factory
+    Payment* createPayment(int choice, double amount) {
+        switch (choice) {
+            case 1: return new CashOnDelivery(amount);
+            case 2: return new ESewa(amount);
+            case 3: return new Khalti(amount);
+            case 4: return new IMEPay(amount);
+            case 5: return new ConnectIPS(amount);
+            case 6: return new BankTransfer(amount);
+            default:return new CashOnDelivery(amount);
+        }
+    }
+
+    // POLYMORPHISM: shipping factory
+    ShippingStrategy* createShipping(int choice) {
+        switch (choice) {
+            case 1: return new StandardShipping();
+            case 2: return new ExpressShipping();
+            default:return new StandardShipping();
+        }
+    }
+
+    void loadProducts() {
+        int i = nextProductID;
+
+        // Electronics
+        products.push_back(Product(i++,
+            "Samsung Galaxy A54","Electronics",
+            49999.00, 20, "Latest Samsung smartphone"));
+        products.push_back(Product(i++,
+            "HP Laptop 15","Electronics",
+            75000.00, 10, "Popular HP laptop"));
+        products.push_back(Product(i++,
+            "Sony Headphones","Electronics",
+            5500.00, 35, "Noise-cancelling headphones"));
+        products.push_back(Product(i++,
+            "Inverter UPS","Electronics",
+            8500.00, 15, "Load shedding backup power"));
+
+        // Traditional Wear
+        products.push_back(Product(i++,
+            "Dhaka Topi","Traditional Wear",
+            450.00, 100, "Nepali traditional topi"));
+        products.push_back(Product(i++,
+            "Daura Suruwal","Traditional Wear",
+            2500.00, 60, "National dress of Nepal"));
+        products.push_back(Product(i++,
+            "Gunyo Cholo","Traditional Wear",
+            3200.00, 50, "Traditional women dress"));
+        products.push_back(Product(i++,
+            "Pashmina Shawl","Traditional Wear",
+            3500.00, 80, "Pure Himalayan pashmina"));
+
+        // Food
+        products.push_back(Product(i++,
+            "Ilam Tea 500g","Food",
+            350.00, 200, "Organic tea from Ilam"));
+        products.push_back(Product(i++,
+            "Wai Wai Noodles","Food",
+            30.00, 500, "Popular Nepali noodles"));
+        products.push_back(Product(i++,
+            "Nepali Honey 500ml","Food",
+            850.00, 120, "Wild honey from Chitwan"));
+        products.push_back(Product(i++,
+            "Mustang Apple 1kg","Food",
+            280.00, 150, "Fresh Mustang apples"));
+
+        // Handicrafts
+        products.push_back(Product(i++,
+            "Singing Bowl","Handicrafts",
+            1200.00, 70, "Handmade Tibetan bowl"));
+        products.push_back(Product(i++,
+            "Thangka Painting","Handicrafts",
+            4500.00, 30, "Traditional Thangka art"));
+        products.push_back(Product(i++,
+            "Khukuri Knife","Handicrafts",
+            2800.00, 40, "Traditional Gurkha knife"));
+
+        // Trekking
+        products.push_back(Product(i++,
+            "Trekking Boots","Trekking",
+            7500.00, 25, "Himalayan trekking boots"));
+        products.push_back(Product(i++,
+            "Down Jacket","Trekking",
+            5500.00, 30, "High altitude jacket"));
+        products.push_back(Product(i++,
+            "Hiking Backpack 60L","Trekking",
+            4200.00, 20, "Multi-day trek backpack"));
+
+        nextProductID = i;
+    }
+
+public:
+    ShopSystem(string name)
+        : shopName(name),
+          nextProductID(1001),
+          nextCustomerID(2001),
+          nextOrderID(9001),
+          loggedInCustomer(-1),
+          adminLoggedIn(false),
+          admin(1, "admin", "admin@sastobazar.com.np",
+                "admin123", "9800000000",
+                "Kathmandu", "Bagmati Pradesh", "ADMIN2007") {
+        loadProducts();
+    }
+
+    void registerCustomer() {
+        cout << endl;
+        cout << "  REGISTER:" << endl;
+
+        string uname = getString("  Username : ");
+        if (findCustomer(uname) != -1) {
+            cout << "  [!] Username taken." << endl;
+            return;
+        }
+
+        string pass1 = getString("  Password : ");
+        string pass2 = getString("  Confirm  : ");
+        if (pass1 != pass2) {
+            cout << "  [!] Passwords do not match." << endl;
+            return;
+        }
+
+        string email   = getString("  Email    : ");
+        string phone   = getString("  Phone    : ");
+        string address = getString("  City     : ");
+        string prov    = selectProvince();
+
+        customers.push_back(
+            Customer(nextCustomerID++, uname, email,
+                     pass1, phone, address, prov));
+
+        cout << "\n  [SUCCESS] Account created! Swagat cha!" << endl;
+    }
+
+    void loginCustomer() {
+        cout << endl;
+        cout << "  LOGIN:" << endl;
+
+        string uname = getString("  Username : ");
+        string pass  = getString("  Password : ");
+
+        int idx = findCustomer(uname);
+        if (idx == -1 || !customers[idx].checkPassword(pass)) {
+            cout << "  [!] Invalid credentials." << endl;
+            return;
+        }
+
+        loggedInCustomer = idx;
+        cout << "  [SUCCESS] Namaste, " << uname << "!" << endl;
+    }
+
+    void loginAdmin() {
+        cout << endl;
+        cout << "  ADMIN LOGIN:" << endl;
+
+        string uname = getString("  Username  : ");
+        string pass  = getString("  Password  : ");
+        string code  = getString("  Admin Code: ");
+
+        if (admin.getName()     == uname &&
+            admin.checkPassword(pass)    &&
+            admin.verifyCode(code)) {
+            adminLoggedIn = true;
+            cout << "  [SUCCESS] Admin access granted." << endl;
+        } else {
+            cout << "  [!] Invalid admin credentials." << endl;
+        }
+    }
+
+    void browseProducts() {
+        cout << endl;
+        cout << "  1. All Products"   << endl;
+        cout << "  2. By Category"    << endl;
+        cout << "  3. Product Detail" << endl;
+        int c = getInt("  Choice: ");
+
+        if (c == 1) {
+            printTableHeader();
+            for (int i = 0; i < (int)products.size(); i++)
+                products[i].display();
+            printTableFooter();
+
+        } else if (c == 2) {
+            vector<string> cats;
+            for (int i = 0; i < (int)products.size(); i++) {
+                bool exists = false;
+                for (int j = 0; j < (int)cats.size(); j++)
+                    if (cats[j] == products[i].getCategory())
+                    { exists = true; break; }
+                if (!exists) cats.push_back(products[i].getCategory());
+            }
+            cout << endl << "  Categories:" << endl;
+            for (int i = 0; i < (int)cats.size(); i++)
+                cout << "  " << i + 1 << ". " << cats[i] << endl;
+
+            int ch = getInt("  Choose: ");
+            if (ch < 1 || ch > (int)cats.size()) {
+                cout << "  [!] Invalid." << endl;
+                return;
+            }
+            printTableHeader();
+            for (int i = 0; i < (int)products.size(); i++)
+                if (products[i].getCategory() == cats[ch - 1])
+                    products[i].display();
+            printTableFooter();
+
+        } else if (c == 3) {
+            printTableHeader();
+            for (int i = 0; i < (int)products.size(); i++)
+                products[i].display();
+            printTableFooter();
+            int id = getInt("  Product ID: ");
+            Product *p = findProduct(id);
+            if (p) p->displayDetail();
+            else   cout << "  [!] Not found." << endl;
+        }
+
+        if (loggedInCustomer != -1) {
+            int add = getInt("\n  Add to cart? (1=Yes / 0=No): ");
+            if (add == 1) addToCart();
+        }
+    }
+
+    void searchProducts() {
+        string kw = getString("\n  Search: ");
+        bool found = false;
+
+        printTableHeader();
+        for (int i = 0; i < (int)products.size(); i++) {
+            if (products[i].getName().find(kw)     != string::npos ||
+                products[i].getCategory().find(kw) != string::npos) {
+                products[i].display();
+                found = true;
+            }
+        }
+        printTableFooter();
+
+        if (!found)
+            cout << "  [!] Kei vetiyena. Nothing found." << endl;
+    }
+
+    void addToCart() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        int id = getInt("  Product ID: ");
+        Product *p = findProduct(id);
+
+        if (!p) {
+            cout << "  [!] Product not found." << endl;
+            return;
+        }
+        if (!p->isAvailable()) {
+            cout << "  [!] Out of stock! Stock chaina." << endl;
+            return;
+        }
+
+        cout << "  Stock: " << p->getStock() << endl;
+        int qty = getInt("  Quantity: ");
+
+        if (qty <= 0 || qty > p->getStock()) {
+            cout << "  [!] Invalid quantity." << endl;
+            return;
+        }
+
+        c.addToCart(p->getID(), p->getName(), p->getPrice(), qty);
+    }
+
+    void viewCart() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        c.displayCartItems();
+        if (c.cartIsEmpty()) return;
+
+        cout << endl;
+        cout << "  1. Remove item" << endl;
+        cout << "  2. Checkout"    << endl;
+        cout << "  3. Back"        << endl;
+        int ch = getInt("  Choice: ");
+
+        if (ch == 1) {
+            int pid = getInt("  Product ID to remove: ");
+            if (c.removeFromCart(pid))
+                cout << "  [+] Removed." << endl;
+            else
+                cout << "  [!] Not found in cart." << endl;
+        } else if (ch == 2) {
+            checkout();
+        }
+    }
+
+    void checkout() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        if (c.cartIsEmpty()) {
+            cout << "  [!] Cart is empty!" << endl;
+            return;
+        }
+
+        c.displayCartItems();
+
+        cout << endl;
+        cout << "  CHECKOUT: " << endl;
+        cout << "  Address  : " << c.getAddress()  << endl;
+        cout << "  Province : " << c.getProvince() << endl;
+
+        int useAddr = getInt("  Use this address? (1=Yes / 0=Change): ");
+
+        string address  = c.getAddress();
+        string province = c.getProvince();
+
+        if (useAddr == 0) {
+            address  = getString("  New Address: ");
+            province = selectProvince();
+        }
+
+        // POLYMORPHISM: Choose Shipping
+        cout << endl;
+        cout << "  Shipping Method:"           << endl;
+        cout << "  1. Standard (Nepal Post)"   << endl;
+        cout << "  2. Express (Sajha Express)" << endl;
+        int sc = getInt("  Choice: ");
+
+        ShippingStrategy *shipping = createShipping(sc);
+        double shippingFee = shipping->calculateFee(province);
+        int    estDays     = shipping->getEstimatedDays(province);
+        string carrier     = shipping->getCarrierName();
+
+        cout << "  Carrier  : " << carrier << endl;
+        cout << "  Fee      : Rs. "
+             << fixed << setprecision(2) << shippingFee << endl;
+        cout << "  Est. Days: " << estDays << " days" << endl;
+
+        // POLYMORPHISM: Choose Payment
+        cout << endl;
+        cout << "  Payment Method:"     << endl;
+        cout << "  1. Cash on Delivery" << endl;
+        cout << "  2. eSewa"            << endl;
+        cout << "  3. Khalti"           << endl;
+        cout << "  4. IME Pay"          << endl;
+        cout << "  5. ConnectIPS"       << endl;
+        cout << "  6. Bank Transfer"    << endl;
+        int pc = getInt("  Choice: ");
+
+        double subtotal = c.cartTotal();
+        double vat      = subtotal * 0.13;
+        double total    = subtotal + vat + shippingFee;
+
+        cout << endl;
+        cout << "  ORDER SUMMARY:"    << endl;
+        cout << "  Subtotal  : Rs. "
+             << fixed << setprecision(2) << subtotal    << endl;
+        cout << "  VAT (13%) : Rs. "
+             << fixed << setprecision(2) << vat         << endl;
+        cout << "  Shipping  : Rs. "
+             << fixed << setprecision(2) << shippingFee << endl;
+        cout << "                         "           << endl;
+        cout << "  TOTAL     : Rs. "
+             << fixed << setprecision(2) << total       << endl;
+        cout << "  Address   : " << address             << endl;
+        cout << "  Province  : " << province            << endl;
+
+        int confirm = getInt("\n  Confirm? (1=Yes / 0=Cancel): ");
+        if (confirm != 1) {
+            cout << "  [!] Cancelled." << endl;
+            delete shipping;
+            return;
+        }
+
+        Payment *payment = createPayment(pc, total);
+        if (!payment->processPayment()) {
+            cout << "  [!] Payment failed." << endl;
+            delete payment;
+            delete shipping;
+            return;
+        }
+
+        payment->displayReceipt();
+
+        // Reduce Stock
+        vector<CartItem> &cart = c.getCart();
+        for (int i = 0; i < (int)cart.size(); i++) {
+            Product *p = findProduct(cart[i].productID);
+            if (p) p->reduceStock(cart[i].quantity);
+        }
+
+        // Create Order
+        Order order;
+        order.orderID       = nextOrderID++;
+        order.customerName  = c.getName();
+        order.items         = cart;
+        order.subtotal      = subtotal;
+        order.vat           = vat;
+        order.shipping      = shippingFee;
+        order.total         = total;
+        order.paymentMethod = payment->getMethodName();
+        order.status        = "Processing";
+        order.date          = getDate();
+        order.address       = address;
+        order.province      = province;
+
+        c.addOrder(order);
+        c.clearCart();
+
+        cout << endl;
+        cout << "  [SUCCESS] Order placed! Dhanyabad!" << endl;
+        cout << "  Order ID  : " << order.orderID          << endl;
+        cout << "  Carrier   : " << carrier                << endl;
+        cout << "  Delivery  : " << estDays << " business days" << endl;
+
+        order.display();
+
+        delete payment;
+        delete shipping;
+    }
+
+    void viewOrderHistory() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        c.displayOrders();
+        if (!c.hasOrders()) return;
+
+        int view = getInt("\n  View detail? (1=Yes / 0=No): ");
+        if (view == 1) {
+            int oid = getInt("  Order ID: ");
+            vector<Order> &orders = c.getOrders();
+            bool found = false;
+            for (int i = 0; i < (int)orders.size(); i++) {
+                if (orders[i].orderID == oid) {
+                    orders[i].display();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) cout << "  [!] Order not found." << endl;
+        }
+    }
+
+    void trackOrder() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        int oid = getInt("\n  Order ID to track: ");
+        vector<Order> &orders = c.getOrders();
+
+        for (int i = 0; i < (int)orders.size(); i++) {
+            if (orders[i].orderID == oid) {
+                Order &o = orders[i];
+                cout << endl;
+                cout << "  TRACKING ORDER #"
+                     << o.orderID << "     " << endl;
+                cout << "  Status   : " << o.status   << endl;
+                cout << "  Province : " << o.province << endl;
+                cout << endl;
+                cout << "  [x] Order Placed"        << endl;
+                cout << "  [x] Payment Confirmed"   << endl;
+                if (o.status == "Shipped" ||
+                    o.status == "Delivered") {
+                    cout << "  [x] Packed"           << endl;
+                    cout << "  [x] Out for Delivery" << endl;
+                } else {
+                    cout << "  [ ] Packed"           << endl;
+                    cout << "  [ ] Out for Delivery" << endl;
+                }
+                cout << (o.status == "Delivered"
+                         ? "  [x]" : "  [ ]")
+                     << " Delivered" << endl;
+                return;
+            }
+        }
+        cout << "  [!] Order not found." << endl;
+    }
+
+    void myAccount() {
+        if (loggedInCustomer == -1) return;
+        Customer &c = customers[loggedInCustomer];
+
+        c.displayInfo();
+
+        cout << endl;
+        cout << "  1. Update Email"    << endl;
+        cout << "  2. Update Phone"    << endl;
+        cout << "  3. Update Address"  << endl;
+        cout << "  4. Update Province" << endl;
+        cout << "  5. Back"            << endl;
+        int ch = getInt("  Choice: ");
+
+        if (ch == 1) {
+            c.setEmail(getString("  New Email: "));
+            cout << "  [+] Updated." << endl;
+        } else if (ch == 2) {
+            c.setPhone(getString("  New Phone: "));
+            cout << "  [+] Updated." << endl;
+        } else if (ch == 3) {
+            c.setAddress(getString("  New Address: "));
+            cout << "  [+] Updated." << endl;
+        } else if (ch == 4) {
+            c.setProvince(selectProvince());
+            cout << "  [+] Updated." << endl;
+        }
+    }
+
+    void adminPanel() {
+        bool inAdmin = true;
+        while (inAdmin) {
+            admin.showMenu();
+            int c = getInt("  Choice: ");
+
+            if (c == 1) {
+                printTableHeader();
+                for (int i = 0; i < (int)products.size(); i++)
+                    products[i].display();
+                printTableFooter();
+
+            } else if (c == 2) {
+                cout << endl;
+                cout << "  ADD PRODUCT:" << endl;
+                string n    = getString("  Name        : ");
+                string cat  = getString("  Category    : ");
+                double pr   = getDouble("  Price (Rs.) : ");
+                int    stk  = getInt   ("  Stock       : ");
+                string desc = getString("  Description : ");
+
+                products.push_back(
+                    Product(nextProductID++, n, cat, pr, stk, desc));
+                cout << "  [+] Product added." << endl;
+
+            } else if (c == 3) {
+                printTableHeader();
+                for (int i = 0; i < (int)products.size(); i++)
+                    products[i].display();
+                printTableFooter();
+                int id = getInt("  Product ID: ");
+                Product *p = findProduct(id);
+                if (p) {
+                    double np = getDouble("  New Price: Rs. ");
+                    p->setPrice(np);
+                    cout << "  [+] Price updated." << endl;
+                } else {
+                    cout << "  [!] Not found." << endl;
+                }
+
+            } else if (c == 4) {
+                printTableHeader();
+                for (int i = 0; i < (int)products.size(); i++)
+                    products[i].display();
+                printTableFooter();
+                int id = getInt("  Product ID: ");
+                Product *p = findProduct(id);
+                if (p) {
+                    int ns = getInt("  New Stock: ");
+                    p->setStock(ns);
+                    cout << "  [+] Stock updated." << endl;
+                } else {
+                    cout << "  [!] Not found." << endl;
+                }
+
+            } else if (c == 5) {
+                printTableHeader();
+                for (int i = 0; i < (int)products.size(); i++)
+                    products[i].display();
+                printTableFooter();
+                int id = getInt("  Product ID to remove: ");
+                for (int i = 0; i < (int)products.size(); i++) {
+                    if (products[i].getID() == id) {
+                        products.erase(products.begin() + i);
+                        cout << "  [+] Product removed." << endl;
+                        break;
+                    }
+                }
+
+            } else if (c == 6) {
+                cout << endl;
+                cout << "  ALL CUSTOMERS: " << endl;
+                if (customers.empty()) {
+                    cout << "  No customers yet." << endl;
+                } else {
+                    for (int i = 0; i < (int)customers.size(); i++) {
+                        cout << "  " << i + 1 << ". "
+                             << customers[i].getName()
+                             << " | " << customers[i].getEmail()
+                             << " | " << customers[i].getProvince()
+                             << endl;
+                    }
+                }
+
+            } else if (c == 7) {
+                adminLoggedIn = false;
+                inAdmin       = false;
+                cout << "  [+] Admin logged out." << endl;
+            } else {
+                cout << "  [!] Invalid choice." << endl;
+            }
+        }
+    }
+
+    void run() {
+        cout << endl;
+        cout << "                                            " << endl;
+        cout << "           " << shopName                      << endl;
+        cout << "       Nepal ko Aafno Online Pasal!"          << endl;
+        cout << "     Delivering Across All 7 Provinces"       << endl;
+        cout << "                                            " << endl;
+
+        bool running = true;
+        while (running) {
+
+            if (adminLoggedIn) {
+                adminPanel();
+
+            } else if (loggedInCustomer == -1) {
+                cout << endl;
+                cout << "  MAIN MENU:"            << endl;
+                cout << "  1. Browse Products"    << endl;
+                cout << "  2. Login"              << endl;
+                cout << "  3. Register"           << endl;
+                cout << "  4. Admin Login"        << endl;
+                cout << "  5. Exit"               << endl;
+                int c = getInt("  Choice: ");
+
+                switch (c) {
+                    case 1: browseProducts();   break;
+                    case 2: loginCustomer();    break;
+                    case 3: registerCustomer(); break;
+                    case 4: loginAdmin();       break;
+                    case 5:
+                        cout << "\n  Dhanyabad! Feri Aaunuhos!" << endl;
+                        running = false;
+                        break;
+                    default:
+                        cout << "  [!] Invalid choice." << endl;
+                }
+
+            } else {
+                // POLYMORPHISM: Customer's showMenu()
+                customers[loggedInCustomer].showMenu();
+                int c = getInt("  Choice: ");
+
+                switch (c) {
+                    case 1: browseProducts();   break;
+                    case 2: searchProducts();   break;
+                    case 3: viewCart();         break;
+                    case 4: checkout();         break;
+                    case 5: viewOrderHistory(); break;
+                    case 6: trackOrder();       break;
+                    case 7: myAccount();        break;
+                    case 8:
+                        cout << "\n  Logged out. Dhanyabad!" << endl;
+                        loggedInCustomer = -1;
+                        break;
+                    default:
+                        cout << "  [!] Invalid choice." << endl;
+                }
+            }
+        }
+    }
+};
+
+
+//  MAIN ENTRY POINT
+
+
+int main() {
+    ShopSystem shop("SastoBazar Nepal");
+    shop.run();
+    return 0;
+}
