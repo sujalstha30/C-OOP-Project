@@ -217,3 +217,224 @@ struct Order {
         cout << "  TOTAL     : Rs. " << fixed << setprecision(2) << total     << endl;
     }
 };
+
+//  ABSTRACTION - Abstract Payment Class
+
+
+class Payment {
+protected:
+    double amount;
+    string status;
+
+public:
+    Payment(double amt) : amount(amt), status("Pending") {}
+
+    virtual bool   processPayment() = 0;
+    virtual string getMethodName()  const = 0;
+    virtual void   displayReceipt() const = 0;
+
+    string getStatus() const { return status; }
+
+    virtual ~Payment() {}
+};
+
+//  INHERITANCE + POLYMORPHISM - Payment Subclasses
+
+class CashOnDelivery : public Payment {
+public:
+    CashOnDelivery(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        cout << "  [COD] Payment will be collected on delivery." << endl;
+        status = "Confirmed";
+        return true;
+    }
+
+    string getMethodName() const { return "Cash on Delivery"; }
+
+    void displayReceipt() const {
+        cout << "  Receipt: COD - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  Status : " << status << endl;
+    }
+};
+
+class ESewa : public Payment {
+private:
+    string mobileNumber;
+public:
+    ESewa(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        mobileNumber = getString("  eSewa mobile number : ");
+        string otp   = getString("  Enter OTP           : ");
+        cout << "  [eSewa] Payment of Rs. "
+             << fixed << setprecision(2) << amount << " confirmed!" << endl;
+        status = "Paid via eSewa";
+        return true;
+    }
+
+    string getMethodName() const { return "eSewa"; }
+
+    void displayReceipt() const {
+        cout << "  Receipt : eSewa - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  Mobile  : " << mobileNumber << endl;
+        cout << "  Status  : " << status        << endl;
+    }
+};
+
+class Khalti : public Payment {
+private:
+    string mobileNumber;
+public:
+    Khalti(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        mobileNumber = getString("  Khalti mobile number: ");
+        string pin   = getString("  Enter Khalti PIN    : ");
+        cout << "  [Khalti] Payment of Rs. "
+             << fixed << setprecision(2) << amount << " confirmed!" << endl;
+        status = "Paid via Khalti";
+        return true;
+    }
+
+    string getMethodName() const { return "Khalti"; }
+
+    void displayReceipt() const {
+        cout << "  Receipt : Khalti - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  Mobile  : " << mobileNumber << endl;
+        cout << "  Status  : " << status        << endl;
+    }
+};
+
+class IMEPay : public Payment {
+private:
+    string mobileNumber;
+public:
+    IMEPay(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        mobileNumber = getString("  IME Pay mobile      : ");
+        string otp   = getString("  Enter OTP           : ");
+        cout << "  [IME Pay] Payment of Rs. "
+             << fixed << setprecision(2) << amount << " confirmed!" << endl;
+        status = "Paid via IME Pay";
+        return true;
+    }
+
+    string getMethodName() const { return "IME Pay"; }
+
+    void displayReceipt() const {
+        cout << "  Receipt : IME Pay - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  Mobile  : " << mobileNumber << endl;
+        cout << "  Status  : " << status        << endl;
+    }
+};
+
+class ConnectIPS : public Payment {
+private:
+    string username;
+public:
+    ConnectIPS(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        username        = getString("  ConnectIPS Username : ");
+        string password = getString("  ConnectIPS Password : ");
+        cout << "  [ConnectIPS] Payment of Rs. "
+             << fixed << setprecision(2) << amount << " confirmed!" << endl;
+        status = "Paid via ConnectIPS";
+        return true;
+    }
+
+    string getMethodName() const { return "ConnectIPS"; }
+
+    void displayReceipt() const {
+        cout << "  Receipt : ConnectIPS - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  User    : " << username << endl;
+        cout << "  Status  : " << status   << endl;
+    }
+};
+
+class BankTransfer : public Payment {
+private:
+    string bankName;
+    string accountNumber;
+public:
+    BankTransfer(double amt) : Payment(amt) {}
+
+    bool processPayment() {
+        cout << "  Available Banks: Nabil, NIC Asia, Everest," << endl;
+        cout << "                   Himalayan, NMB, Siddhartha" << endl;
+        bankName      = getString("  Bank Name           : ");
+        accountNumber = getString("  Account Number      : ");
+        cout << "  [Bank Transfer] Transfer of Rs. "
+             << fixed << setprecision(2) << amount << " initiated." << endl;
+        cout << "  [Bank Transfer] Will be verified in 1 hour." << endl;
+        status = "Transfer Initiated";
+        return true;
+    }
+
+    string getMethodName() const {
+        return "Bank Transfer (" + bankName + ")";
+    }
+
+    void displayReceipt() const {
+        cout << "  Receipt : Bank Transfer - Rs. "
+             << fixed << setprecision(2) << amount << endl;
+        cout << "  Bank    : " << bankName      << endl;
+        cout << "  Account : " << accountNumber << endl;
+        cout << "  Status  : " << status        << endl;
+    }
+};
+
+//  ABSTRACTION - Abstract Shipping Strategy
+
+class ShippingStrategy {
+public:
+    virtual double calculateFee(const string &province)  const = 0;
+    virtual string getCarrierName()                      const = 0;
+    virtual int    getEstimatedDays(const string &prov)  const = 0;
+    virtual ~ShippingStrategy() {}
+};
+
+class StandardShipping : public ShippingStrategy {
+public:
+    double calculateFee(const string &province) const {
+        if (province == "Bagmati Pradesh")       return 100.0;
+        if (province == "Karnali Pradesh" ||
+            province == "Sudurpashchim Pradesh") return 350.0;
+        return 200.0;
+    }
+
+    string getCarrierName() const { return "Nepal Post Standard"; }
+
+    int getEstimatedDays(const string &prov) const {
+        if (prov == "Bagmati Pradesh")       return 2;
+        if (prov == "Karnali Pradesh" ||
+            prov == "Sudurpashchim Pradesh") return 7;
+        return 5;
+    }
+};
+
+class ExpressShipping : public ShippingStrategy {
+public:
+    double calculateFee(const string &province) const {
+        if (province == "Bagmati Pradesh")       return 250.0;
+        if (province == "Karnali Pradesh" ||
+            province == "Sudurpashchim Pradesh") return 600.0;
+        return 400.0;
+    }
+
+    string getCarrierName() const { return "Sajha Express Delivery"; }
+
+    int getEstimatedDays(const string &prov) const {
+        if (prov == "Bagmati Pradesh")       return 1;
+        if (prov == "Karnali Pradesh" ||
+            prov == "Sudurpashchim Pradesh") return 3;
+        return 2;
+    }
+};
