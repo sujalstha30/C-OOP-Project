@@ -438,3 +438,191 @@ public:
         return 2;
     }
 };
+// ============================================================
+//  ABSTRACTION - Abstract User Base Class
+// ============================================================
+
+class BaseUser : public Entity {
+protected:
+    string email;
+    string password;
+    string phone;
+    string address;
+    string province;
+
+public:
+    BaseUser(int i, string n, string e,
+             string pass, string ph,
+             string addr, string prov)
+        : Entity(i, n),
+          email(e), password(pass), phone(ph),
+          address(addr), province(prov) {}
+
+    virtual void showMenu()        = 0;
+    virtual void displayInfo() const = 0;
+
+    bool checkPassword(const string &p) const { return password == p; }
+
+    string getEmail()    const { return email;    }
+    string getPhone()    const { return phone;    }
+    string getAddress()  const { return address;  }
+    string getProvince() const { return province; }
+
+    void setEmail(string e)    { email    = e; }
+    void setPhone(string p)    { phone    = p; }
+    void setAddress(string a)  { address  = a; }
+    void setProvince(string p) { province = p; }
+
+    virtual ~BaseUser() {}
+};
+
+//  INHERITANCE - Customer Class
+
+
+class Customer : public BaseUser {
+private:
+    vector<CartItem> cart;
+    vector<Order>    orders;
+
+public:
+    Customer(int i, string uname, string email,
+             string pass, string phone,
+             string addr, string prov)
+        : BaseUser(i, uname, email, pass, phone, addr, prov) {}
+
+    void showMenu() {
+        cout << endl;
+        cout << "  Namaste, " << name << "!" << endl;
+        cout << "  1. Browse Products"  << endl;
+        cout << "  2. Search Product"   << endl;
+        cout << "  3. View Cart"        << endl;
+        cout << "  4. Checkout"         << endl;
+        cout << "  5. Order History"    << endl;
+        cout << "  6. Track Order"      << endl;
+        cout << "  7. My Account"       << endl;
+        cout << "  8. Logout"           << endl;
+    }
+
+    void displayInfo() const {
+        cout << endl;
+        cout << "  MY ACCOUNT:"         << endl;
+        cout << "  Username : " << name     << endl;
+        cout << "  Email    : " << email    << endl;
+        cout << "  Phone    : " << phone    << endl;
+        cout << "  Address  : " << address  << endl;
+        cout << "  Province : " << province << endl;
+    }
+
+    double cartTotal() const {
+        double t = 0;
+        for (int i = 0; i < (int)cart.size(); i++)
+            t += cart[i].subtotal();
+        return t;
+    }
+
+    void addToCart(int pid, string pn, double pr, int qty) {
+        for (int i = 0; i < (int)cart.size(); i++) {
+            if (cart[i].productID == pid) {
+                cart[i].quantity += qty;
+                cout << "  [+] Quantity updated in cart." << endl;
+                return;
+            }
+        }
+        cart.push_back(CartItem(pid, pn, pr, qty));
+        cout << "  [+] " << pn << " added to cart!" << endl;
+    }
+
+    bool removeFromCart(int pid) {
+        for (int i = 0; i < (int)cart.size(); i++) {
+            if (cart[i].productID == pid) {
+                cart.erase(cart.begin() + i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void clearCart()             { cart.clear();        }
+    bool cartIsEmpty()     const { return cart.empty(); }
+    vector<CartItem>& getCart()  { return cart;         }
+
+    void addOrder(Order o)       { orders.push_back(o); }
+    bool hasOrders()       const { return !orders.empty(); }
+    vector<Order>& getOrders()   { return orders;       }
+
+    void displayOrders() const {
+        cout << endl;
+        cout << "  ORDER HISTORY:" << endl;
+        if (orders.empty()) {
+            cout << "  No orders yet." << endl;
+            return;
+        }
+        for (int i = 0; i < (int)orders.size(); i++) {
+            cout << "  Order #" << orders[i].orderID
+                 << " | " << orders[i].date
+                 << " | Rs. " << fixed << setprecision(2)
+                 << orders[i].total
+                 << " | " << orders[i].status << endl;
+        }
+    }
+
+    void displayCartItems() const {
+        cout << endl;
+        cout << "  YOUR CART:" << endl;
+        if (cart.empty()) {
+            cout << "  Cart is empty." << endl;
+            return;
+        }
+        cout << "  " << left
+             << setw(6)  << "ID"
+             << setw(22) << "Product"
+             << setw(12) << "Price"
+             << setw(6)  << "Qty"
+             << "Subtotal" << endl;
+        cout << "                                                  " << endl;
+        for (int i = 0; i < (int)cart.size(); i++)
+            cart[i].display();
+        cout << "                                                  " << endl;
+        cout << "  TOTAL: Rs. "
+             << fixed << setprecision(2) << cartTotal() << endl;
+    }
+};
+
+//  INHERITANCE - Admin Class
+
+
+class Admin : public BaseUser {
+private:
+    string adminCode;
+
+public:
+    Admin(int i, string uname, string email,
+          string pass, string phone,
+          string addr, string prov, string code)
+        : BaseUser(i, uname, email, pass, phone, addr, prov),
+          adminCode(code) {}
+
+    void showMenu() {
+        cout << endl;
+        cout << "  ADMIN PANEL:"            << endl;
+        cout << "  1. View All Products"    << endl;
+        cout << "  2. Add Product"          << endl;
+        cout << "  3. Update Product Price" << endl;
+        cout << "  4. Update Product Stock" << endl;
+        cout << "  5. Remove Product"       << endl;
+        cout << "  6. View All Customers"   << endl;
+        cout << "  7. Logout"               << endl;
+    }
+
+    void displayInfo() const {
+        cout << endl;
+        cout << "  ADMIN INFO:"         << endl;
+        cout << "  Username : " << name  << endl;
+        cout << "  Email    : " << email << endl;
+        cout << "  Phone    : " << phone << endl;
+    }
+
+    bool verifyCode(const string &code) const {
+        return adminCode == code;
+    }
+};
