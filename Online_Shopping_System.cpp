@@ -4,1363 +4,643 @@
 #include <iomanip>
 #include <limits>
 #include <ctime>
-
 using namespace std;
 
-//  INPUT UTILITIES
+// Input Helpers
+void clearInput() { cin.clear(); cin.ignore(numeric_limits<streamsize>::max(), '\n'); }
 
-void clearInput() {
-    cin.clear();
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-}
-
-int getInt(const string &prompt) {
-    int val;
+int getInt(const string &p) {
+    int v;
     while (true) {
-        cout << prompt;
-        if (cin >> val) {
-            clearInput();
-            return val;
-        }
-        cout << "  [!] Invalid. Enter a number." << endl;
-        clearInput();
+        cout << p;
+        if (cin >> v) { clearInput(); return v; }
+        clearInput(); cout << "  Invalid input.\n";
     }
 }
 
-double getDouble(const string &prompt) {
-    double val;
-    while (true) {
-        cout << prompt;
-        if (cin >> val && val > 0) {
-            clearInput();
-            return val;
-        }
-        cout << "  [!] Enter a positive number." << endl;
-        clearInput();
-    }
-}
-
-string getString(const string &prompt) {
-    string val;
-    cout << prompt;
-    getline(cin, val);
-    return val;
-}
+string getString(const string &p) { string v; cout << p; getline(cin, v); return v; }
 
 string getDate() {
-    time_t now = time(0);
-    tm *ltm = localtime(&now);
-    return to_string(1900 + ltm->tm_year) + "-" +
-           to_string(1 + ltm->tm_mon)     + "-" +
-           to_string(ltm->tm_mday);
+    time_t n = time(0); tm *t = localtime(&n);
+    return to_string(1900 + t->tm_year) + "-" + to_string(1 + t->tm_mon) + "-" + to_string(t->tm_mday);
 }
 
-//  ABSTRACTION - Abstract Base Classes (Interfaces)
-
-// Abstract: anything that can be displayed
-class IDisplayable {
-public:
-    virtual void display()       const = 0;
-    virtual void displayDetail() const = 0;
-    virtual ~IDisplayable() {}
-};
-
-// Abstract: anything that can be managed (CRUD)
-class IManageable {
-public:
-    virtual void add()    = 0;
-    virtual void remove() = 0;
-    virtual void update() = 0;
-    virtual ~IManageable() {}
-};
-
-// Abstract: Base Entity (every object has an ID and name)
+// Abstract Base
 class Entity {
 protected:
-    int    id;
-    string name;
-
+    int id; string name;
 public:
     Entity(int i, string n) : id(i), name(n) {}
-
-    virtual int    getID()   const { return id;   }
-    virtual string getName() const { return name; }
-
+    int    getID()   const { return id;   }
+    string getName() const { return name; }
     virtual ~Entity() {}
 };
 
-//  ENCAPSULATION - Product Class (private data, public methods)
-
-class Product : public Entity, public IDisplayable {
-private:
-    string category;
+// Product
+class Product : public Entity {
+    string cat, desc;
     double price;
     int    stock;
-    string description;
-
 public:
-    Product(int i, string n, string c,
-            double p, int s, string d)
-        : Entity(i, n),
-          category(c), price(p), stock(s), description(d) {}
+    Product(int i, string n, string c, double p, int s, string d)
+        : Entity(i, n), cat(c), price(p), stock(s), desc(d) {}
 
-    // Getters
-    string getCategory()    const { return category;    }
-    double getPrice()       const { return price;       }
-    int    getStock()       const { return stock;       }
-    string getDescription() const { return description; }
-
-    // Setters
-    void setPrice(double p)    { price    = p; }
-    void setStock(int s)       { stock    = s; }
-    void setCategory(string c) { category = c; }
-
-    bool reduceStock(int qty) {
-        if (qty <= 0 || qty > stock) return false;
-        stock -= qty;
-        return true;
-    }
-
-    void restoreStock(int qty) {
-        if (qty > 0) stock += qty;
-    }
-
-    bool isAvailable() const { return stock > 0; }
+    string getCategory() const { return cat;   }
+    double getPrice()    const { return price; }
+    int    getStock()    const { return stock; }
+    void   setPrice(double p)  { price = p;   }
+    void   setStock(int s)     { stock = s;   }
+    bool   isAvailable() const { return stock > 0; }
+    bool   reduceStock(int q)  { if (q > stock) return false; stock -= q; return true; }
 
     void display() const {
-        cout << "  | " << left
-             << setw(6)  << id
-             << setw(22) << name
-             << setw(18) << category
-             << "Rs." << right << setw(10)
+        cout << "  " << left << setw(6) << id << setw(22) << name
+             << setw(16) << cat << "Rs." << right << setw(10)
              << fixed << setprecision(2) << price
-             << "  " << left << setw(5) << stock
-             << " |" << endl;
+             << "  Stock:" << stock << "\n";
     }
 
     void displayDetail() const {
-        cout << endl;
-        cout << "  ID          : " << id          << endl;
-        cout << "  Name        : " << name        << endl;
-        cout << "  Category    : " << category    << endl;
-        cout << "  Price       : Rs. " << fixed
-             << setprecision(2)   << price          << endl;
-        cout << "  Stock       : " << stock       << endl;
-        cout << "  Description : " << description << endl;
+        cout << "\n  ID       : " << id
+             << "\n  Name     : " << name
+             << "\n  Category : " << cat
+             << "\n  Price    : Rs." << fixed << setprecision(2) << price
+             << "\n  Stock    : " << stock
+             << "\n  Desc     : " << desc << "\n";
     }
 };
 
-//  CartItem and Order Structures
-
+// Cart Item
 struct CartItem {
-    int    productID;
-    string productName;
-    double price;
-    int    quantity;
-
-    CartItem(int pid, string pn, double pr, int q)
-        : productID(pid), productName(pn),
-          price(pr), quantity(q) {}
-
-    double subtotal() const { return price * quantity; }
-
+    int pid; string pname; double price; int qty;
+    CartItem(int i, string n, double p, int q) : pid(i), pname(n), price(p), qty(q) {}
+    double subtotal() const { return price * qty; }
     void display() const {
-        cout << "  " << left
-             << setw(6)  << productID
-             << setw(22) << productName
-             << "Rs." << right << setw(9)
-             << fixed << setprecision(2) << price
-             << "  x" << left << setw(4) << quantity
-             << "  Rs." << right << setw(10)
-             << fixed << setprecision(2) << subtotal()
-             << endl;
+        cout << "  " << left << setw(6) << pid << setw(20) << pname
+             << "Rs." << right << setw(9) << fixed << setprecision(2) << price
+             << " x" << qty << " = Rs." << fixed << setprecision(2) << subtotal() << "\n";
     }
 };
 
+// Order
 struct Order {
-    int             orderID;
-    string          customerName;
-    vector<CartItem>items;
-    double          subtotal;
-    double          vat;
-    double          shipping;
-    double          total;
-    string          paymentMethod;
-    string          status;
-    string          date;
-    string          address;
-    string          province;
+    int oid;
+    string customer, payment, address, status, date;
+    vector<CartItem> items;
+    double sub, ship, total;
 
-    void display() const {
-        cout << endl;
-        cout << "  ORDER #" << orderID << endl;
-        cout << "  Customer : " << customerName << endl;
-        cout << "  Date     : " << date         << endl;
-        cout << "  Address  : " << address      << endl;
-        cout << "  Province : " << province     << endl;
-        cout << "  Payment  : " << paymentMethod<< endl;
-        cout << "  Status   : " << status       << endl;
-        cout << endl;
-        cout << "  " << left
-             << setw(6)  << "ID"
-             << setw(22) << "Product"
-             << setw(12) << "Price"
-             << setw(6)  << "Qty"
-             << "Subtotal" << endl;
-        cout << "                                                  " << endl;
-        for (int i = 0; i < (int)items.size(); i++)
-            items[i].display();
-        cout << "                                                  " << endl;
-        cout << "  Subtotal  : Rs. " << fixed << setprecision(2) << subtotal  << endl;
-        cout << "  VAT (13%) : Rs. " << fixed << setprecision(2) << vat       << endl;
-        cout << "  Shipping  : Rs. " << fixed << setprecision(2) << shipping  << endl;
-        cout << "  TOTAL     : Rs. " << fixed << setprecision(2) << total     << endl;
+    void show() const {
+        cout << "\n  Order   : " << oid
+             << "\n  Date    : " << date
+             << "\n  Status  : " << status
+             << "\n  Address : " << address
+             << "\n  Payment : " << payment << "\n";
+        for (auto &i : items) i.display();
+        cout << "  Subtotal: Rs." << fixed << setprecision(2) << sub
+             << "\n  Shipping: Rs." << ship
+             << "\n  Total   : Rs." << total << "\n";
+    }
+
+    void track() const {
+        cout << "\n  Order " << oid << " - " << status << "\n"
+             << "  [x] Order Placed\n"
+             << "  [x] Payment Confirmed\n"
+             << (status == "Shipped" || status == "Delivered" ? "  [x]" : "  [ ]") << " Out for Delivery\n"
+             << (status == "Delivered" ? "  [x]" : "  [ ]") << " Delivered\n";
     }
 };
 
-//  ABSTRACTION - Abstract Payment Class
-
-
+// Abstract Payment
 class Payment {
 protected:
-    double amount;
-    string status;
-
+    double amount; string status;
 public:
-    Payment(double amt) : amount(amt), status("Pending") {}
-
-    virtual bool   processPayment() = 0;
+    Payment(double a) : amount(a), status("Pending") {}
+    virtual bool   processPayment()       = 0;
     virtual string getMethodName()  const = 0;
     virtual void   displayReceipt() const = 0;
-
-    string getStatus() const { return status; }
-
     virtual ~Payment() {}
 };
 
-//  INHERITANCE + POLYMORPHISM - Payment Subclasses
-
+// Payment Types
 class CashOnDelivery : public Payment {
 public:
-    CashOnDelivery(double amt) : Payment(amt) {}
-
-    bool processPayment() {
-        cout << "  [COD] Payment will be collected on delivery." << endl;
-        status = "Confirmed";
-        return true;
-    }
-
-    string getMethodName() const { return "Cash on Delivery"; }
-
-    void displayReceipt() const {
-        cout << "  Receipt: COD - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  Status : " << status << endl;
-    }
+    CashOnDelivery(double a) : Payment(a) {}
+    bool processPayment() { cout << "  Pay on delivery.\n"; status = "Confirmed"; return true; }
+    string getMethodName()  const { return "Cash on Delivery"; }
+    void   displayReceipt() const { cout << "  COD Rs." << fixed << setprecision(2) << amount << "\n"; }
 };
 
 class ESewa : public Payment {
-private:
-    string mobileNumber;
+    string mob;
 public:
-    ESewa(double amt) : Payment(amt) {}
-
+    ESewa(double a) : Payment(a) {}
     bool processPayment() {
-        mobileNumber = getString("  eSewa mobile number : ");
-        string otp   = getString("  Enter OTP           : ");
-        cout << "  [eSewa] Payment of Rs. "
-             << fixed << setprecision(2) << amount << " confirmed!" << endl;
-        status = "Paid via eSewa";
-        return true;
+        mob = getString("  eSewa number : "); getString("  OTP          : ");
+        cout << "  eSewa confirmed.\n"; status = "Paid via eSewa"; return true;
     }
-
-    string getMethodName() const { return "eSewa"; }
-
-    void displayReceipt() const {
-        cout << "  Receipt : eSewa - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  Mobile  : " << mobileNumber << endl;
-        cout << "  Status  : " << status        << endl;
-    }
+    string getMethodName()  const { return "eSewa"; }
+    void   displayReceipt() const { cout << "  eSewa Rs." << fixed << setprecision(2) << amount << " - " << mob << "\n"; }
 };
 
 class Khalti : public Payment {
-private:
-    string mobileNumber;
+    string mob;
 public:
-    Khalti(double amt) : Payment(amt) {}
-
+    Khalti(double a) : Payment(a) {}
     bool processPayment() {
-        mobileNumber = getString("  Khalti mobile number: ");
-        string pin   = getString("  Enter Khalti PIN    : ");
-        cout << "  [Khalti] Payment of Rs. "
-             << fixed << setprecision(2) << amount << " confirmed!" << endl;
-        status = "Paid via Khalti";
-        return true;
+        mob = getString("  Khalti number: "); getString("  PIN          : ");
+        cout << "  Khalti confirmed.\n"; status = "Paid via Khalti"; return true;
     }
-
-    string getMethodName() const { return "Khalti"; }
-
-    void displayReceipt() const {
-        cout << "  Receipt : Khalti - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  Mobile  : " << mobileNumber << endl;
-        cout << "  Status  : " << status        << endl;
-    }
-};
-
-class IMEPay : public Payment {
-private:
-    string mobileNumber;
-public:
-    IMEPay(double amt) : Payment(amt) {}
-
-    bool processPayment() {
-        mobileNumber = getString("  IME Pay mobile      : ");
-        string otp   = getString("  Enter OTP           : ");
-        cout << "  [IME Pay] Payment of Rs. "
-             << fixed << setprecision(2) << amount << " confirmed!" << endl;
-        status = "Paid via IME Pay";
-        return true;
-    }
-
-    string getMethodName() const { return "IME Pay"; }
-
-    void displayReceipt() const {
-        cout << "  Receipt : IME Pay - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  Mobile  : " << mobileNumber << endl;
-        cout << "  Status  : " << status        << endl;
-    }
-};
-
-class ConnectIPS : public Payment {
-private:
-    string username;
-public:
-    ConnectIPS(double amt) : Payment(amt) {}
-
-    bool processPayment() {
-        username        = getString("  ConnectIPS Username : ");
-        string password = getString("  ConnectIPS Password : ");
-        cout << "  [ConnectIPS] Payment of Rs. "
-             << fixed << setprecision(2) << amount << " confirmed!" << endl;
-        status = "Paid via ConnectIPS";
-        return true;
-    }
-
-    string getMethodName() const { return "ConnectIPS"; }
-
-    void displayReceipt() const {
-        cout << "  Receipt : ConnectIPS - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  User    : " << username << endl;
-        cout << "  Status  : " << status   << endl;
-    }
+    string getMethodName()  const { return "Khalti"; }
+    void   displayReceipt() const { cout << "  Khalti Rs." << fixed << setprecision(2) << amount << " - " << mob << "\n"; }
 };
 
 class BankTransfer : public Payment {
-private:
-    string bankName;
-    string accountNumber;
+    string bank;
 public:
-    BankTransfer(double amt) : Payment(amt) {}
-
+    BankTransfer(double a) : Payment(a) {}
     bool processPayment() {
-        cout << "  Available Banks: Nabil, NIC Asia, Everest," << endl;
-        cout << "                   Himalayan, NMB, Siddhartha" << endl;
-        bankName      = getString("  Bank Name           : ");
-        accountNumber = getString("  Account Number      : ");
-        cout << "  [Bank Transfer] Transfer of Rs. "
-             << fixed << setprecision(2) << amount << " initiated." << endl;
-        cout << "  [Bank Transfer] Will be verified in 1 hour." << endl;
-        status = "Transfer Initiated";
-        return true;
+        cout << "  Banks: Nabil, NIC Asia, Himalayan, NMB\n";
+        bank = getString("  Bank name    : "); getString("  Account no   : ");
+        cout << "  Transfer initiated.\n"; status = "Transfer Initiated"; return true;
     }
-
-    string getMethodName() const {
-        return "Bank Transfer (" + bankName + ")";
-    }
-
-    void displayReceipt() const {
-        cout << "  Receipt : Bank Transfer - Rs. "
-             << fixed << setprecision(2) << amount << endl;
-        cout << "  Bank    : " << bankName      << endl;
-        cout << "  Account : " << accountNumber << endl;
-        cout << "  Status  : " << status        << endl;
-    }
+    string getMethodName()  const { return "Bank Transfer (" + bank + ")"; }
+    void   displayReceipt() const { cout << "  Bank Rs." << fixed << setprecision(2) << amount << " - " << bank << "\n"; }
 };
 
-//  ABSTRACTION - Abstract Shipping Strategy
-
+// Abstract Shipping
 class ShippingStrategy {
 public:
-    virtual double calculateFee(const string &province)  const = 0;
-    virtual string getCarrierName()                      const = 0;
-    virtual int    getEstimatedDays(const string &prov)  const = 0;
+    virtual double calculateFee(const string &p)     const = 0;
+    virtual string getCarrierName()                  const = 0;
+    virtual int    getEstimatedDays(const string &p) const = 0;
     virtual ~ShippingStrategy() {}
 };
 
 class StandardShipping : public ShippingStrategy {
 public:
-    double calculateFee(const string &province) const {
-        if (province == "Bagmati Pradesh")       return 100.0;
-        if (province == "Karnali Pradesh" ||
-            province == "Sudurpashchim Pradesh") return 350.0;
-        return 200.0;
+    double calculateFee(const string &p) const {
+        if (p == "Bagmati Pradesh") return 100;
+        if (p == "Karnali Pradesh" || p == "Sudurpashchim Pradesh") return 350;
+        return 200;
     }
-
-    string getCarrierName() const { return "Nepal Post Standard"; }
-
-    int getEstimatedDays(const string &prov) const {
-        if (prov == "Bagmati Pradesh")       return 2;
-        if (prov == "Karnali Pradesh" ||
-            prov == "Sudurpashchim Pradesh") return 7;
+    string getCarrierName()                  const { return "Nepal Post"; }
+    int    getEstimatedDays(const string &p) const {
+        if (p == "Bagmati Pradesh") return 2;
+        if (p == "Karnali Pradesh" || p == "Sudurpashchim Pradesh") return 7;
         return 5;
     }
 };
 
 class ExpressShipping : public ShippingStrategy {
 public:
-    double calculateFee(const string &province) const {
-        if (province == "Bagmati Pradesh")       return 250.0;
-        if (province == "Karnali Pradesh" ||
-            province == "Sudurpashchim Pradesh") return 600.0;
-        return 400.0;
+    double calculateFee(const string &p) const {
+        if (p == "Bagmati Pradesh") return 250;
+        if (p == "Karnali Pradesh" || p == "Sudurpashchim Pradesh") return 600;
+        return 400;
     }
-
-    string getCarrierName() const { return "Sajha Express Delivery"; }
-
-    int getEstimatedDays(const string &prov) const {
-        if (prov == "Bagmati Pradesh")       return 1;
-        if (prov == "Karnali Pradesh" ||
-            prov == "Sudurpashchim Pradesh") return 3;
+    string getCarrierName()                  const { return "Sajha Express"; }
+    int    getEstimatedDays(const string &p) const {
+        if (p == "Bagmati Pradesh") return 1;
+        if (p == "Karnali Pradesh" || p == "Sudurpashchim Pradesh") return 3;
         return 2;
     }
 };
-// ============================================================
-//  ABSTRACTION - Abstract User Base Class
-// ============================================================
 
+// Base User
 class BaseUser : public Entity {
 protected:
-    string email;
-    string password;
-    string phone;
-    string address;
-    string province;
-
+    string email, password, phone, address, province;
 public:
-    BaseUser(int i, string n, string e,
-             string pass, string ph,
-             string addr, string prov)
-        : Entity(i, n),
-          email(e), password(pass), phone(ph),
-          address(addr), province(prov) {}
-
-    virtual void showMenu()        = 0;
-    virtual void displayInfo() const = 0;
-
-    bool checkPassword(const string &p) const { return password == p; }
-
-    string getEmail()    const { return email;    }
-    string getPhone()    const { return phone;    }
+    BaseUser(int i, string n, string e, string pass, string ph, string addr, string prov)
+        : Entity(i, n), email(e), password(pass), phone(ph), address(addr), province(prov) {}
+    virtual void showMenu()    = 0;
+    virtual void displayInfo() = 0;
+    bool   checkPassword(const string &p) const { return password == p; }
     string getAddress()  const { return address;  }
     string getProvince() const { return province; }
-
-    void setEmail(string e)    { email    = e; }
-    void setPhone(string p)    { phone    = p; }
-    void setAddress(string a)  { address  = a; }
-    void setProvince(string p) { province = p; }
-
+    void   setEmail(string e)    { email    = e; }
+    void   setPhone(string p)    { phone    = p; }
+    void   setAddress(string a)  { address  = a; }
+    void   setProvince(string p) { province = p; }
     virtual ~BaseUser() {}
 };
 
-//  INHERITANCE - Customer Class
-
-
+// Customer
 class Customer : public BaseUser {
-private:
     vector<CartItem> cart;
     vector<Order>    orders;
-
 public:
-    Customer(int i, string uname, string email,
-             string pass, string phone,
-             string addr, string prov)
-        : BaseUser(i, uname, email, pass, phone, addr, prov) {}
+    Customer(int i, string u, string e, string pass, string ph, string addr, string prov)
+        : BaseUser(i, u, e, pass, ph, addr, prov) {}
 
     void showMenu() {
-        cout << endl;
-        cout << "  Namaste, " << name << "!" << endl;
-        cout << "  1. Browse Products"  << endl;
-        cout << "  2. Search Product"   << endl;
-        cout << "  3. View Cart"        << endl;
-        cout << "  4. Checkout"         << endl;
-        cout << "  5. Order History"    << endl;
-        cout << "  6. Track Order"      << endl;
-        cout << "  7. My Account"       << endl;
-        cout << "  8. Logout"           << endl;
+        cout << "\n  Namaste, " << name << "\n"
+             << "  1. Browse Products\n"
+             << "  2. Search\n"
+             << "  3. View Cart\n"
+             << "  4. Checkout\n"
+             << "  5. Order History\n"
+             << "  6. Track Order\n"
+             << "  7. Logout\n";
     }
 
-    void displayInfo() const {
-        cout << endl;
-        cout << "  MY ACCOUNT:"         << endl;
-        cout << "  Username : " << name     << endl;
-        cout << "  Email    : " << email    << endl;
-        cout << "  Phone    : " << phone    << endl;
-        cout << "  Address  : " << address  << endl;
-        cout << "  Province : " << province << endl;
+    void displayInfo() {
+        cout << "\n  Name     : " << name
+             << "\n  Email    : " << email
+             << "\n  Phone    : " << phone
+             << "\n  Address  : " << address
+             << "\n  Province : " << province << "\n";
     }
 
-    double cartTotal() const {
-        double t = 0;
-        for (int i = 0; i < (int)cart.size(); i++)
-            t += cart[i].subtotal();
-        return t;
-    }
+    double cartTotal() const { double t = 0; for (auto &i : cart) t += i.subtotal(); return t; }
 
     void addToCart(int pid, string pn, double pr, int qty) {
-        for (int i = 0; i < (int)cart.size(); i++) {
-            if (cart[i].productID == pid) {
-                cart[i].quantity += qty;
-                cout << "  [+] Quantity updated in cart." << endl;
-                return;
-            }
+        for (auto &i : cart) {
+            if (i.pid == pid) { i.qty += qty; cout << "  Quantity updated.\n"; return; }
         }
         cart.push_back(CartItem(pid, pn, pr, qty));
-        cout << "  [+] " << pn << " added to cart!" << endl;
+        cout << "  " << pn << " added to cart.\n";
     }
 
     bool removeFromCart(int pid) {
-        for (int i = 0; i < (int)cart.size(); i++) {
-            if (cart[i].productID == pid) {
-                cart.erase(cart.begin() + i);
-                return true;
-            }
-        }
+        for (int i = 0; i < (int)cart.size(); i++)
+            if (cart[i].pid == pid) { cart.erase(cart.begin() + i); return true; }
         return false;
     }
 
-    void clearCart()             { cart.clear();        }
-    bool cartIsEmpty()     const { return cart.empty(); }
-    vector<CartItem>& getCart()  { return cart;         }
+    void              clearCart()       { cart.clear();          }
+    bool              cartIsEmpty()     { return cart.empty();   }
+    vector<CartItem>& getCart()         { return cart;           }
+    void              addOrder(Order o) { orders.push_back(o);   }
+    bool              hasOrders()       { return !orders.empty();}
+    vector<Order>&    getOrders()       { return orders;         }
 
-    void addOrder(Order o)       { orders.push_back(o); }
-    bool hasOrders()       const { return !orders.empty(); }
-    vector<Order>& getOrders()   { return orders;       }
-
-    void displayOrders() const {
-        cout << endl;
-        cout << "  ORDER HISTORY:" << endl;
-        if (orders.empty()) {
-            cout << "  No orders yet." << endl;
-            return;
-        }
-        for (int i = 0; i < (int)orders.size(); i++) {
-            cout << "  Order #" << orders[i].orderID
-                 << " | " << orders[i].date
-                 << " | Rs. " << fixed << setprecision(2)
-                 << orders[i].total
-                 << " | " << orders[i].status << endl;
-        }
+    void showCart() {
+        cout << "\n  Cart\n";
+        if (cart.empty()) { cout << "  Empty.\n"; return; }
+        for (auto &i : cart) i.display();
+        cout << "  Total: Rs." << fixed << setprecision(2) << cartTotal() << "\n";
     }
 
-    void displayCartItems() const {
-        cout << endl;
-        cout << "  YOUR CART:" << endl;
-        if (cart.empty()) {
-            cout << "  Cart is empty." << endl;
-            return;
-        }
-        cout << "  " << left
-             << setw(6)  << "ID"
-             << setw(22) << "Product"
-             << setw(12) << "Price"
-             << setw(6)  << "Qty"
-             << "Subtotal" << endl;
-        cout << "                                                  " << endl;
-        for (int i = 0; i < (int)cart.size(); i++)
-            cart[i].display();
-        cout << "                                                  " << endl;
-        cout << "  TOTAL: Rs. "
-             << fixed << setprecision(2) << cartTotal() << endl;
+    void showOrders() {
+        cout << "\n  Order History\n";
+        if (orders.empty()) { cout << "  No orders yet.\n"; return; }
+        for (auto &o : orders)
+            cout << "  " << o.oid << " " << o.date << " Rs."
+                 << fixed << setprecision(2) << o.total << " " << o.status << "\n";
     }
 };
 
-//  INHERITANCE - Admin Class
-
-
+// Admin
 class Admin : public BaseUser {
-private:
-    string adminCode;
-
+    string code;
 public:
-    Admin(int i, string uname, string email,
-          string pass, string phone,
-          string addr, string prov, string code)
-        : BaseUser(i, uname, email, pass, phone, addr, prov),
-          adminCode(code) {}
+    Admin(int i, string u, string e, string pass, string ph, string addr, string prov, string c)
+        : BaseUser(i, u, e, pass, ph, addr, prov), code(c) {}
 
     void showMenu() {
-        cout << endl;
-        cout << "  ADMIN PANEL:"            << endl;
-        cout << "  1. View All Products"    << endl;
-        cout << "  2. Add Product"          << endl;
-        cout << "  3. Update Product Price" << endl;
-        cout << "  4. Update Product Stock" << endl;
-        cout << "  5. Remove Product"       << endl;
-        cout << "  6. View All Customers"   << endl;
-        cout << "  7. Logout"               << endl;
+        cout << "\n  Admin Panel\n"
+             << "  1. View Products\n"
+             << "  2. Add Product\n"
+             << "  3. Update Price\n"
+             << "  4. Update Stock\n"
+             << "  5. Remove Product\n"
+             << "  6. View Customers\n"
+             << "  7. Logout\n";
     }
 
-    void displayInfo() const {
-        cout << endl;
-        cout << "  ADMIN INFO:"         << endl;
-        cout << "  Username : " << name  << endl;
-        cout << "  Email    : " << email << endl;
-        cout << "  Phone    : " << phone << endl;
-    }
-
-    bool verifyCode(const string &code) const {
-        return adminCode == code;
-    }
+    void displayInfo() { cout << "\n  Admin: " << name << "\n"; }
+    bool verifyCode(const string &c) const { return code == c; }
 };
 
-
-//  MAIN SHOP SYSTEM CLASS
-
-
+// Shop System
 class ShopSystem {
-private:
-    string           shopName;
     vector<Product>  products;
     vector<Customer> customers;
     Admin            admin;
-    int              nextProductID;
-    int              nextCustomerID;
-    int              nextOrderID;
-    int              loggedInCustomer;
-    bool             adminLoggedIn;
+    int  nextPID, nextCID, nextOID, loggedIn;
+    bool adminIn;
 
-    string provinces[7] = {
-        "Koshi Pradesh",
-        "Madhesh Pradesh",
-        "Bagmati Pradesh",
-        "Gandaki Pradesh",
-        "Lumbini Pradesh",
-        "Karnali Pradesh",
-        "Sudurpashchim Pradesh"
+    string prov[7] = {
+        "Koshi Pradesh", "Madhesh Pradesh", "Bagmati Pradesh",
+        "Gandaki Pradesh", "Lumbini Pradesh",
+        "Karnali Pradesh", "Sudurpashchim Pradesh"
     };
 
     Product* findProduct(int id) {
-        for (int i = 0; i < (int)products.size(); i++)
-            if (products[i].getID() == id)
-                return &products[i];
+        for (auto &p : products) if (p.getID() == id) return &p;
         return NULL;
     }
 
-    int findCustomer(const string &uname) {
+    int findCustomer(const string &u) {
         for (int i = 0; i < (int)customers.size(); i++)
-            if (customers[i].getName() == uname)
-                return i;
+            if (customers[i].getName() == u) return i;
         return -1;
     }
 
     string selectProvince() {
-        cout << endl;
-        cout << "  Select Province:" << endl;
-        for (int i = 0; i < 7; i++)
-            cout << "  " << i + 1 << ". " << provinces[i] << endl;
+        cout << "\n  Select Province\n";
+        for (int i = 0; i < 7; i++) cout << "  " << i + 1 << ". " << prov[i] << "\n";
         int c = getInt("  Choice: ");
-        if (c >= 1 && c <= 7) return provinces[c - 1];
-        return "Bagmati Pradesh";
+        return (c >= 1 && c <= 7) ? prov[c - 1] : "Bagmati Pradesh";
     }
 
-    void printTableHeader() {
-        cout << "                                                             " << endl;
-        cout << "  | " << left
-             << setw(6)  << "ID"
-             << setw(22) << "Name"
-             << setw(18) << "Category"
-             << setw(14) << "Price"
-             << setw(5)  << "Stock"
-             << " |" << endl;
-        cout << "                                                             " << endl;
+    void showTable() {
+        cout << "\n  " << left << setw(6) << "ID" << setw(22) << "Name"
+             << setw(16) << "Category" << setw(12) << "Price" << "Stock\n";
+        for (auto &p : products) p.display();
     }
 
-    void printTableFooter() {
-        cout << "                                                             " << endl;
-    }
-
-    // POLYMORPHISM: payment factory
-    Payment* createPayment(int choice, double amount) {
-        switch (choice) {
-            case 1: return new CashOnDelivery(amount);
-            case 2: return new ESewa(amount);
-            case 3: return new Khalti(amount);
-            case 4: return new IMEPay(amount);
-            case 5: return new ConnectIPS(amount);
-            case 6: return new BankTransfer(amount);
-            default:return new CashOnDelivery(amount);
+    Payment* makePayment(int c, double amt) {
+        switch (c) {
+            case 1: return new CashOnDelivery(amt);
+            case 2: return new ESewa(amt);
+            case 3: return new Khalti(amt);
+            case 4: return new BankTransfer(amt);
+            default:return new CashOnDelivery(amt);
         }
     }
 
-    // POLYMORPHISM: shipping factory
-    ShippingStrategy* createShipping(int choice) {
-        switch (choice) {
-            case 1: return new StandardShipping();
-            case 2: return new ExpressShipping();
-            default:return new StandardShipping();
-        }
+    ShippingStrategy* makeShipping(int c) {
+        return (c == 2) ? (ShippingStrategy*) new ExpressShipping()
+                        : (ShippingStrategy*) new StandardShipping();
     }
 
     void loadProducts() {
-        int i = nextProductID;
-
-        // Electronics
-        products.push_back(Product(i++,
-            "Samsung Galaxy A54","Electronics",
-            49999.00, 20, "Latest Samsung smartphone"));
-        products.push_back(Product(i++,
-            "HP Laptop 15","Electronics",
-            75000.00, 10, "Popular HP laptop"));
-        products.push_back(Product(i++,
-            "Sony Headphones","Electronics",
-            5500.00, 35, "Noise-cancelling headphones"));
-        products.push_back(Product(i++,
-            "Inverter UPS","Electronics",
-            8500.00, 15, "Load shedding backup power"));
-
-        // Traditional Wear
-        products.push_back(Product(i++,
-            "Dhaka Topi","Traditional Wear",
-            450.00, 100, "Nepali traditional topi"));
-        products.push_back(Product(i++,
-            "Daura Suruwal","Traditional Wear",
-            2500.00, 60, "National dress of Nepal"));
-        products.push_back(Product(i++,
-            "Gunyo Cholo","Traditional Wear",
-            3200.00, 50, "Traditional women dress"));
-        products.push_back(Product(i++,
-            "Pashmina Shawl","Traditional Wear",
-            3500.00, 80, "Pure Himalayan pashmina"));
-
-        // Food
-        products.push_back(Product(i++,
-            "Ilam Tea 500g","Food",
-            350.00, 200, "Organic tea from Ilam"));
-        products.push_back(Product(i++,
-            "Wai Wai Noodles","Food",
-            30.00, 500, "Popular Nepali noodles"));
-        products.push_back(Product(i++,
-            "Nepali Honey 500ml","Food",
-            850.00, 120, "Wild honey from Chitwan"));
-        products.push_back(Product(i++,
-            "Mustang Apple 1kg","Food",
-            280.00, 150, "Fresh Mustang apples"));
-
-        // Handicrafts
-        products.push_back(Product(i++,
-            "Singing Bowl","Handicrafts",
-            1200.00, 70, "Handmade Tibetan bowl"));
-        products.push_back(Product(i++,
-            "Thangka Painting","Handicrafts",
-            4500.00, 30, "Traditional Thangka art"));
-        products.push_back(Product(i++,
-            "Khukuri Knife","Handicrafts",
-            2800.00, 40, "Traditional Gurkha knife"));
-
-        // Trekking
-        products.push_back(Product(i++,
-            "Trekking Boots","Trekking",
-            7500.00, 25, "Himalayan trekking boots"));
-        products.push_back(Product(i++,
-            "Down Jacket","Trekking",
-            5500.00, 30, "High altitude jacket"));
-        products.push_back(Product(i++,
-            "Hiking Backpack 60L","Trekking",
-            4200.00, 20, "Multi-day trek backpack"));
-
-        nextProductID = i;
+        int i = nextPID;
+        products.push_back(Product(i++, "Samsung Galaxy A54", "Electronics",   49999, 20, "Latest Samsung"));
+        products.push_back(Product(i++, "HP Laptop 15",       "Electronics",   75000, 10, "Popular HP laptop"));
+        products.push_back(Product(i++, "Sony Headphones",    "Electronics",   5500,  35, "Noise cancelling"));
+        products.push_back(Product(i++, "Lay's",      "Food",          350,  200, "Organic Ilam tea"));
+        products.push_back(Product(i++, "Wai Wai Noodles",    "Food",          30,   500, "Nepali noodles"));
+        nextPID = i;
     }
 
 public:
-    ShopSystem(string name)
-        : shopName(name),
-          nextProductID(1001),
-          nextCustomerID(2001),
-          nextOrderID(9001),
-          loggedInCustomer(-1),
-          adminLoggedIn(false),
-          admin(1, "admin", "admin@sastobazar.com.np",
-                "admin123", "9800000000",
-                "Kathmandu", "Bagmati Pradesh", "ADMIN2007") {
+    ShopSystem()
+        : nextPID(1001), nextCID(2001), nextOID(9001),
+          loggedIn(-1), adminIn(false),
+          admin(1, "admin", "admin@sastobazar.np", "admin123",
+                "9800000000", "Kathmandu", "Bagmati Pradesh", "ADMIN2007") {
         loadProducts();
     }
 
     void registerCustomer() {
-        cout << endl;
-        cout << "  REGISTER:" << endl;
-
-        string uname = getString("  Username : ");
-        if (findCustomer(uname) != -1) {
-            cout << "  [!] Username taken." << endl;
-            return;
-        }
-
-        string pass1 = getString("  Password : ");
-        string pass2 = getString("  Confirm  : ");
-        if (pass1 != pass2) {
-            cout << "  [!] Passwords do not match." << endl;
-            return;
-        }
-
-        string email   = getString("  Email    : ");
-        string phone   = getString("  Phone    : ");
-        string address = getString("  City     : ");
-        string prov    = selectProvince();
-
-        customers.push_back(
-            Customer(nextCustomerID++, uname, email,
-                     pass1, phone, address, prov));
-
-        cout << "\n  [SUCCESS] Account created! Swagat cha!" << endl;
+        cout << "\n  Register\n";
+        string u = getString("  Username : ");
+        if (findCustomer(u) != -1) { cout << "  Username taken.\n"; return; }
+        string p1 = getString("  Password : ");
+        string p2 = getString("  Confirm  : ");
+        if (p1 != p2) { cout << "  Passwords do not match.\n"; return; }
+        string e  = getString("  Email    : ");
+        string ph = getString("  Phone    : ");
+        string a  = getString("  City     : ");
+        customers.push_back(Customer(nextCID++, u, e, p1, ph, a, selectProvince()));
+        cout << "  Account created! Swagat cha!\n";
     }
 
     void loginCustomer() {
-        cout << endl;
-        cout << "  LOGIN:" << endl;
-
-        string uname = getString("  Username : ");
-        string pass  = getString("  Password : ");
-
-        int idx = findCustomer(uname);
-        if (idx == -1 || !customers[idx].checkPassword(pass)) {
-            cout << "  [!] Invalid credentials." << endl;
-            return;
-        }
-
-        loggedInCustomer = idx;
-        cout << "  [SUCCESS] Namaste, " << uname << "!" << endl;
+        cout << "\n  Login\n";
+        string u = getString("  Username : ");
+        string p = getString("  Password : ");
+        int idx  = findCustomer(u);
+        if (idx == -1 || !customers[idx].checkPassword(p)) { cout << "  Invalid credentials.\n"; return; }
+        loggedIn = idx;
+        cout << "  Namaste, " << u << "\n";
     }
 
     void loginAdmin() {
-        cout << endl;
-        cout << "  ADMIN LOGIN:" << endl;
-
-        string uname = getString("  Username  : ");
-        string pass  = getString("  Password  : ");
-        string code  = getString("  Admin Code: ");
-
-        if (admin.getName()     == uname &&
-            admin.checkPassword(pass)    &&
-            admin.verifyCode(code)) {
-            adminLoggedIn = true;
-            cout << "  [SUCCESS] Admin access granted." << endl;
-        } else {
-            cout << "  [!] Invalid admin credentials." << endl;
-        }
+        cout << "\n  Admin Login\n";
+        string u = getString("  Username : ");
+        string p = getString("  Password : ");
+        string c = getString("  Code     : ");
+        if (admin.getName() == u && admin.checkPassword(p) && admin.verifyCode(c)) {
+            adminIn = true; cout << "  Access granted.\n";
+        } else cout << "  Invalid credentials.\n";
     }
 
     void browseProducts() {
-        cout << endl;
-        cout << "  1. All Products"   << endl;
-        cout << "  2. By Category"    << endl;
-        cout << "  3. Product Detail" << endl;
+        cout << "\n  1. All Products\n  2. By Category\n  3. Product Detail\n";
         int c = getInt("  Choice: ");
-
         if (c == 1) {
-            printTableHeader();
-            for (int i = 0; i < (int)products.size(); i++)
-                products[i].display();
-            printTableFooter();
-
+            showTable();
         } else if (c == 2) {
             vector<string> cats;
-            for (int i = 0; i < (int)products.size(); i++) {
-                bool exists = false;
-                for (int j = 0; j < (int)cats.size(); j++)
-                    if (cats[j] == products[i].getCategory())
-                    { exists = true; break; }
-                if (!exists) cats.push_back(products[i].getCategory());
+            for (auto &p : products) {
+                bool ex = false;
+                for (auto &cat : cats) if (cat == p.getCategory()) ex = true;
+                if (!ex) cats.push_back(p.getCategory());
             }
-            cout << endl << "  Categories:" << endl;
-            for (int i = 0; i < (int)cats.size(); i++)
-                cout << "  " << i + 1 << ". " << cats[i] << endl;
-
+            for (int i = 0; i < (int)cats.size(); i++) cout << "  " << i + 1 << ". " << cats[i] << "\n";
             int ch = getInt("  Choose: ");
-            if (ch < 1 || ch > (int)cats.size()) {
-                cout << "  [!] Invalid." << endl;
-                return;
-            }
-            printTableHeader();
-            for (int i = 0; i < (int)products.size(); i++)
-                if (products[i].getCategory() == cats[ch - 1])
-                    products[i].display();
-            printTableFooter();
-
+            if (ch < 1 || ch > (int)cats.size()) { cout << "  Invalid.\n"; return; }
+            for (auto &p : products) if (p.getCategory() == cats[ch - 1]) p.display();
         } else if (c == 3) {
-            printTableHeader();
-            for (int i = 0; i < (int)products.size(); i++)
-                products[i].display();
-            printTableFooter();
-            int id = getInt("  Product ID: ");
-            Product *p = findProduct(id);
-            if (p) p->displayDetail();
-            else   cout << "  [!] Not found." << endl;
+            showTable();
+            Product *p = findProduct(getInt("  Product ID: "));
+            if (p) p->displayDetail(); else cout << "  Not found.\n";
         }
-
-        if (loggedInCustomer != -1) {
-            int add = getInt("\n  Add to cart? (1=Yes / 0=No): ");
-            if (add == 1) addToCart();
-        }
+        if (loggedIn != -1 && getInt("\n  Add to cart? 1=Yes 0=No: ") == 1) addToCart();
     }
 
     void searchProducts() {
         string kw = getString("\n  Search: ");
         bool found = false;
-
-        printTableHeader();
-        for (int i = 0; i < (int)products.size(); i++) {
-            if (products[i].getName().find(kw)     != string::npos ||
-                products[i].getCategory().find(kw) != string::npos) {
-                products[i].display();
-                found = true;
-            }
-        }
-        printTableFooter();
-
-        if (!found)
-            cout << "  [!] Kei vetiyena. Nothing found." << endl;
+        for (auto &p : products)
+            if (p.getName().find(kw) != string::npos || p.getCategory().find(kw) != string::npos)
+            { p.display(); found = true; }
+        if (!found) cout << "  No results.\n";
+        else if (loggedIn != -1 && getInt("  Add to cart? 1=Yes 0=No: ") == 1) addToCart();
     }
 
     void addToCart() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
-
-        int id = getInt("  Product ID: ");
-        Product *p = findProduct(id);
-
-        if (!p) {
-            cout << "  [!] Product not found." << endl;
-            return;
-        }
-        if (!p->isAvailable()) {
-            cout << "  [!] Out of stock! Stock chaina." << endl;
-            return;
-        }
-
-        cout << "  Stock: " << p->getStock() << endl;
+        if (loggedIn == -1) return;
+        Customer &c = customers[loggedIn];
+        Product *p  = findProduct(getInt("  Product ID: "));
+        if (!p)                { cout << "  Not found.\n";    return; }
+        if (!p->isAvailable()) { cout << "  Out of stock.\n"; return; }
+        cout << "  Stock: " << p->getStock() << "\n";
         int qty = getInt("  Quantity: ");
-
-        if (qty <= 0 || qty > p->getStock()) {
-            cout << "  [!] Invalid quantity." << endl;
-            return;
-        }
-
+        if (qty <= 0 || qty > p->getStock()) { cout << "  Invalid quantity.\n"; return; }
         c.addToCart(p->getID(), p->getName(), p->getPrice(), qty);
     }
 
     void viewCart() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
-
-        c.displayCartItems();
+        if (loggedIn == -1) return;
+        Customer &c = customers[loggedIn];
+        c.showCart();
         if (c.cartIsEmpty()) return;
-
-        cout << endl;
-        cout << "  1. Remove item" << endl;
-        cout << "  2. Checkout"    << endl;
-        cout << "  3. Back"        << endl;
+        cout << "  1. Remove item\n  2. Checkout\n  3. Back\n";
         int ch = getInt("  Choice: ");
-
         if (ch == 1) {
-            int pid = getInt("  Product ID to remove: ");
-            if (c.removeFromCart(pid))
-                cout << "  [+] Removed." << endl;
-            else
-                cout << "  [!] Not found in cart." << endl;
-        } else if (ch == 2) {
-            checkout();
-        }
+            int pid = getInt("  Product ID: ");
+            cout << (c.removeFromCart(pid) ? "  Removed.\n" : "  Not in cart.\n");
+        } else if (ch == 2) checkout();
     }
 
     void checkout() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
+        if (loggedIn == -1) return;
+        Customer &c = customers[loggedIn];
+        if (c.cartIsEmpty()) { cout << "  Cart is empty.\n"; return; }
+        c.showCart();
 
-        if (c.cartIsEmpty()) {
-            cout << "  [!] Cart is empty!" << endl;
-            return;
+        string addr = c.getAddress(), pr = c.getProvince();
+        cout << "\n  Address : " << addr << "\n  Province: " << pr << "\n";
+        if (getInt("  Use this address? 1=Yes 0=Change: ") == 0) {
+            addr = getString("  New Address: ");
+            pr   = selectProvince();
         }
 
-        c.displayCartItems();
+        cout << "\n  1. Standard (Nepal Post)\n  2. Express (Sajha)\n";
+        ShippingStrategy *ship = makeShipping(getInt("  Shipping: "));
+        double fee  = ship->calculateFee(pr);
+        int    days = ship->getEstimatedDays(pr);
+        cout << "  " << ship->getCarrierName() << " Rs." << fixed << setprecision(2) << fee << " " << days << " days\n";
 
-        cout << endl;
-        cout << "  CHECKOUT: " << endl;
-        cout << "  Address  : " << c.getAddress()  << endl;
-        cout << "  Province : " << c.getProvince() << endl;
+        cout << "\n  1.COD  2.eSewa  3.Khalti  4.Bank Transfer\n";
+        int    pc    = getInt("  Payment: ");
+        double sub   = c.cartTotal();
+        double total = sub + fee;
 
-        int useAddr = getInt("  Use this address? (1=Yes / 0=Change): ");
+        cout << "\n  Subtotal: Rs." << fixed << setprecision(2) << sub
+             << "\n  Shipping: Rs." << fee
+             << "\n  Total   : Rs." << total << "\n";
 
-        string address  = c.getAddress();
-        string province = c.getProvince();
+        if (getInt("\n  Confirm? 1=Yes 0=No: ") != 1) { cout << "  Cancelled.\n"; delete ship; return; }
 
-        if (useAddr == 0) {
-            address  = getString("  New Address: ");
-            province = selectProvince();
+        Payment *pay = makePayment(pc, total);
+        pay->processPayment();
+        pay->displayReceipt();
+
+        for (auto &item : c.getCart()) {
+            Product *p = findProduct(item.pid);
+            if (p) p->reduceStock(item.qty);
         }
 
-        // POLYMORPHISM: Choose Shipping
-        cout << endl;
-        cout << "  Shipping Method:"           << endl;
-        cout << "  1. Standard (Nepal Post)"   << endl;
-        cout << "  2. Express (Sajha Express)" << endl;
-        int sc = getInt("  Choice: ");
+        Order o;
+        o.oid     = nextOID++;
+        o.customer= c.getName();
+        o.items   = c.getCart();
+        o.sub     = sub;
+        o.ship    = fee;
+        o.total   = total;
+        o.payment = pay->getMethodName();
+        o.status  = "Processing";
+        o.date    = getDate();
+        o.address = addr;
 
-        ShippingStrategy *shipping = createShipping(sc);
-        double shippingFee = shipping->calculateFee(province);
-        int    estDays     = shipping->getEstimatedDays(province);
-        string carrier     = shipping->getCarrierName();
-
-        cout << "  Carrier  : " << carrier << endl;
-        cout << "  Fee      : Rs. "
-             << fixed << setprecision(2) << shippingFee << endl;
-        cout << "  Est. Days: " << estDays << " days" << endl;
-
-        // POLYMORPHISM: Choose Payment
-        cout << endl;
-        cout << "  Payment Method:"     << endl;
-        cout << "  1. Cash on Delivery" << endl;
-        cout << "  2. eSewa"            << endl;
-        cout << "  3. Khalti"           << endl;
-        cout << "  4. IME Pay"          << endl;
-        cout << "  5. ConnectIPS"       << endl;
-        cout << "  6. Bank Transfer"    << endl;
-        int pc = getInt("  Choice: ");
-
-        double subtotal = c.cartTotal();
-        double vat      = subtotal * 0.13;
-        double total    = subtotal + vat + shippingFee;
-
-        cout << endl;
-        cout << "  ORDER SUMMARY:"    << endl;
-        cout << "  Subtotal  : Rs. "
-             << fixed << setprecision(2) << subtotal    << endl;
-        cout << "  VAT (13%) : Rs. "
-             << fixed << setprecision(2) << vat         << endl;
-        cout << "  Shipping  : Rs. "
-             << fixed << setprecision(2) << shippingFee << endl;
-        cout << "                         "           << endl;
-        cout << "  TOTAL     : Rs. "
-             << fixed << setprecision(2) << total       << endl;
-        cout << "  Address   : " << address             << endl;
-        cout << "  Province  : " << province            << endl;
-
-        int confirm = getInt("\n  Confirm? (1=Yes / 0=Cancel): ");
-        if (confirm != 1) {
-            cout << "  [!] Cancelled." << endl;
-            delete shipping;
-            return;
-        }
-
-        Payment *payment = createPayment(pc, total);
-        if (!payment->processPayment()) {
-            cout << "  [!] Payment failed." << endl;
-            delete payment;
-            delete shipping;
-            return;
-        }
-
-        payment->displayReceipt();
-
-        // Reduce Stock
-        vector<CartItem> &cart = c.getCart();
-        for (int i = 0; i < (int)cart.size(); i++) {
-            Product *p = findProduct(cart[i].productID);
-            if (p) p->reduceStock(cart[i].quantity);
-        }
-
-        // Create Order
-        Order order;
-        order.orderID       = nextOrderID++;
-        order.customerName  = c.getName();
-        order.items         = cart;
-        order.subtotal      = subtotal;
-        order.vat           = vat;
-        order.shipping      = shippingFee;
-        order.total         = total;
-        order.paymentMethod = payment->getMethodName();
-        order.status        = "Processing";
-        order.date          = getDate();
-        order.address       = address;
-        order.province      = province;
-
-        c.addOrder(order);
+        c.addOrder(o);
         c.clearCart();
+        cout << "\n  Order " << o.oid << " placed. Delivery in " << days << " days. Dhanyabad!\n";
 
-        cout << endl;
-        cout << "  [SUCCESS] Order placed! Dhanyabad!" << endl;
-        cout << "  Order ID  : " << order.orderID          << endl;
-        cout << "  Carrier   : " << carrier                << endl;
-        cout << "  Delivery  : " << estDays << " business days" << endl;
-
-        order.display();
-
-        delete payment;
-        delete shipping;
+        delete pay;
+        delete ship;
     }
 
-    void viewOrderHistory() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
-
-        c.displayOrders();
+    void viewOrders() {
+        if (loggedIn == -1) return;
+        Customer &c = customers[loggedIn];
+        c.showOrders();
         if (!c.hasOrders()) return;
-
-        int view = getInt("\n  View detail? (1=Yes / 0=No): ");
-        if (view == 1) {
+        if (getInt("  View detail? 1=Yes 0=No: ") == 1) {
             int oid = getInt("  Order ID: ");
-            vector<Order> &orders = c.getOrders();
-            bool found = false;
-            for (int i = 0; i < (int)orders.size(); i++) {
-                if (orders[i].orderID == oid) {
-                    orders[i].display();
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) cout << "  [!] Order not found." << endl;
+            for (auto &o : c.getOrders()) if (o.oid == oid) { o.show(); return; }
+            cout << "  Not found.\n";
         }
     }
 
     void trackOrder() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
-
-        int oid = getInt("\n  Order ID to track: ");
-        vector<Order> &orders = c.getOrders();
-
-        for (int i = 0; i < (int)orders.size(); i++) {
-            if (orders[i].orderID == oid) {
-                Order &o = orders[i];
-                cout << endl;
-                cout << "  TRACKING ORDER #"
-                     << o.orderID << "     " << endl;
-                cout << "  Status   : " << o.status   << endl;
-                cout << "  Province : " << o.province << endl;
-                cout << endl;
-                cout << "  [x] Order Placed"        << endl;
-                cout << "  [x] Payment Confirmed"   << endl;
-                if (o.status == "Shipped" ||
-                    o.status == "Delivered") {
-                    cout << "  [x] Packed"           << endl;
-                    cout << "  [x] Out for Delivery" << endl;
-                } else {
-                    cout << "  [ ] Packed"           << endl;
-                    cout << "  [ ] Out for Delivery" << endl;
-                }
-                cout << (o.status == "Delivered"
-                         ? "  [x]" : "  [ ]")
-                     << " Delivered" << endl;
-                return;
-            }
-        }
-        cout << "  [!] Order not found." << endl;
-    }
-
-    void myAccount() {
-        if (loggedInCustomer == -1) return;
-        Customer &c = customers[loggedInCustomer];
-
-        c.displayInfo();
-
-        cout << endl;
-        cout << "  1. Update Email"    << endl;
-        cout << "  2. Update Phone"    << endl;
-        cout << "  3. Update Address"  << endl;
-        cout << "  4. Update Province" << endl;
-        cout << "  5. Back"            << endl;
-        int ch = getInt("  Choice: ");
-
-        if (ch == 1) {
-            c.setEmail(getString("  New Email: "));
-            cout << "  [+] Updated." << endl;
-        } else if (ch == 2) {
-            c.setPhone(getString("  New Phone: "));
-            cout << "  [+] Updated." << endl;
-        } else if (ch == 3) {
-            c.setAddress(getString("  New Address: "));
-            cout << "  [+] Updated." << endl;
-        } else if (ch == 4) {
-            c.setProvince(selectProvince());
-            cout << "  [+] Updated." << endl;
-        }
+        if (loggedIn == -1) return;
+        Customer &c = customers[loggedIn];
+        if (!c.hasOrders()) { cout << "  No orders.\n"; return; }
+        c.showOrders();
+        int oid = getInt("  Order ID: ");
+        for (auto &o : c.getOrders()) if (o.oid == oid) { o.track(); return; }
+        cout << "  Not found.\n";
     }
 
     void adminPanel() {
-        bool inAdmin = true;
-        while (inAdmin) {
+        bool on = true;
+        while (on) {
             admin.showMenu();
             int c = getInt("  Choice: ");
-
             if (c == 1) {
-                printTableHeader();
-                for (int i = 0; i < (int)products.size(); i++)
-                    products[i].display();
-                printTableFooter();
-
+                showTable();
             } else if (c == 2) {
-                cout << endl;
-                cout << "  ADD PRODUCT:" << endl;
-                string n    = getString("  Name        : ");
-                string cat  = getString("  Category    : ");
-                double pr   = getDouble("  Price (Rs.) : ");
-                int    stk  = getInt   ("  Stock       : ");
-                string desc = getString("  Description : ");
-
-                products.push_back(
-                    Product(nextProductID++, n, cat, pr, stk, desc));
-                cout << "  [+] Product added." << endl;
-
+                string n   = getString("  Name     : ");
+                string cat = getString("  Category : ");
+                string d   = getString("  Desc     : ");
+                double pr  = 0; cout << "  Price    : "; cin >> pr; clearInput();
+                int    stk = getInt("  Stock    : ");
+                products.push_back(Product(nextPID++, n, cat, pr, stk, d));
+                cout << "  Product added.\n";
             } else if (c == 3) {
-                printTableHeader();
-                for (int i = 0; i < (int)products.size(); i++)
-                    products[i].display();
-                printTableFooter();
-                int id = getInt("  Product ID: ");
-                Product *p = findProduct(id);
-                if (p) {
-                    double np = getDouble("  New Price: Rs. ");
-                    p->setPrice(np);
-                    cout << "  [+] Price updated." << endl;
-                } else {
-                    cout << "  [!] Not found." << endl;
-                }
-
+                showTable();
+                Product *p = findProduct(getInt("  ID: "));
+                if (p) { double pr = 0; cout << "  New Price: "; cin >> pr; clearInput(); p->setPrice(pr); cout << "  Updated.\n"; }
+                else     cout << "  Not found.\n";
             } else if (c == 4) {
-                printTableHeader();
-                for (int i = 0; i < (int)products.size(); i++)
-                    products[i].display();
-                printTableFooter();
-                int id = getInt("  Product ID: ");
-                Product *p = findProduct(id);
-                if (p) {
-                    int ns = getInt("  New Stock: ");
-                    p->setStock(ns);
-                    cout << "  [+] Stock updated." << endl;
-                } else {
-                    cout << "  [!] Not found." << endl;
-                }
-
+                showTable();
+                Product *p = findProduct(getInt("  ID: "));
+                if (p) { p->setStock(getInt("  New Stock: ")); cout << "  Updated.\n"; }
+                else     cout << "  Not found.\n";
             } else if (c == 5) {
-                printTableHeader();
+                showTable();
+                int id = getInt("  ID to remove: ");
                 for (int i = 0; i < (int)products.size(); i++)
-                    products[i].display();
-                printTableFooter();
-                int id = getInt("  Product ID to remove: ");
-                for (int i = 0; i < (int)products.size(); i++) {
-                    if (products[i].getID() == id) {
-                        products.erase(products.begin() + i);
-                        cout << "  [+] Product removed." << endl;
-                        break;
-                    }
-                }
-
+                    if (products[i].getID() == id) { products.erase(products.begin() + i); cout << "  Removed.\n"; break; }
             } else if (c == 6) {
-                cout << endl;
-                cout << "  ALL CUSTOMERS: " << endl;
-                if (customers.empty()) {
-                    cout << "  No customers yet." << endl;
-                } else {
-                    for (int i = 0; i < (int)customers.size(); i++) {
-                        cout << "  " << i + 1 << ". "
-                             << customers[i].getName()
-                             << " | " << customers[i].getEmail()
-                             << " | " << customers[i].getProvince()
-                             << endl;
-                    }
-                }
-
+                cout << "\n  Customers\n";
+                if (customers.empty()) cout << "  None.\n";
+                else for (int i = 0; i < (int)customers.size(); i++)
+                    cout << "  " << i + 1 << ". " << customers[i].getName() << "\n";
             } else if (c == 7) {
-                adminLoggedIn = false;
-                inAdmin       = false;
-                cout << "  [+] Admin logged out." << endl;
-            } else {
-                cout << "  [!] Invalid choice." << endl;
-            }
+                adminIn = false; on = false; cout << "  Admin logged out.\n";
+            } else cout << "  Invalid.\n";
         }
     }
 
     void run() {
-        cout << endl;
-        cout << "                                            " << endl;
-        cout << "           " << shopName                      << endl;
-        cout << "       Nepal ko Aafno Online Pasal!"          << endl;
-        cout << "     Delivering Across All 7 Provinces"       << endl;
-        cout << "                                            " << endl;
-
-        bool running = true;
-        while (running) {
-
-            if (adminLoggedIn) {
+        cout << "\n  SastoBazar Nepal\n  Nepal ko Aafno Online Pasal\n";
+        bool go = true;
+        while (go) {
+            if (adminIn) {
                 adminPanel();
-
-            } else if (loggedInCustomer == -1) {
-                cout << endl;
-                cout << "  MAIN MENU:"            << endl;
-                cout << "  1. Browse Products"    << endl;
-                cout << "  2. Login"              << endl;
-                cout << "  3. Register"           << endl;
-                cout << "  4. Admin Login"        << endl;
-                cout << "  5. Exit"               << endl;
-                int c = getInt("  Choice: ");
-
-                switch (c) {
+            } else if (loggedIn == -1) {
+                cout << "\n  Main Menu\n"
+                     << "  1. Browse Products\n"
+                     << "  2. Login\n"
+                     << "  3. Register\n"
+                     << "  4. Admin Login\n"
+                     << "  5. Exit\n";
+                switch (getInt("  Choice: ")) {
                     case 1: browseProducts();   break;
                     case 2: loginCustomer();    break;
                     case 3: registerCustomer(); break;
                     case 4: loginAdmin();       break;
-                    case 5:
-                        cout << "\n  Dhanyabad! Feri Aaunuhos!" << endl;
-                        running = false;
-                        break;
-                    default:
-                        cout << "  [!] Invalid choice." << endl;
+                    case 5: cout << "  Dhanyabad! Feri Aaunuhos!\n"; go = false; break;
+                    default: cout << "  Invalid.\n";
                 }
-
             } else {
-                // POLYMORPHISM: Customer's showMenu()
-                customers[loggedInCustomer].showMenu();
-                int c = getInt("  Choice: ");
-
-                switch (c) {
-                    case 1: browseProducts();   break;
-                    case 2: searchProducts();   break;
-                    case 3: viewCart();         break;
-                    case 4: checkout();         break;
-                    case 5: viewOrderHistory(); break;
-                    case 6: trackOrder();       break;
-                    case 7: myAccount();        break;
-                    case 8:
-                        cout << "\n  Logged out. Dhanyabad!" << endl;
-                        loggedInCustomer = -1;
-                        break;
-                    default:
-                        cout << "  [!] Invalid choice." << endl;
+                customers[loggedIn].showMenu();
+                switch (getInt("  Choice: ")) {
+                    case 1: browseProducts(); break;
+                    case 2: searchProducts(); break;
+                    case 3: viewCart();       break;
+                    case 4: checkout();       break;
+                    case 5: viewOrders();     break;
+                    case 6: trackOrder();     break;
+                    case 7: cout << "  Logged out.\n"; loggedIn = -1; break;
+                    default: cout << "  Invalid.\n";
                 }
             }
         }
     }
 };
 
-
-//  MAIN ENTRY POINT
-
-
 int main() {
-    ShopSystem shop("SastoBazar Nepal");
+    ShopSystem shop;
     shop.run();
     return 0;
 }
