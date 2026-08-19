@@ -1,0 +1,5 @@
+1001|Samsung Galaxy A54|Electronics|49999.00|20|Latest Samsung
+1002|HP Laptop 15|Electronics|75000.00|10|Popular HP laptop
+1003|Sony Headphones|Electronics|5500.00|35|Noise cancelling
+1004|Lay's|Food|350.00|200|Classic chips
+1005|Wai Wai Noodles|Food|30.00|500|Nepali noodles
